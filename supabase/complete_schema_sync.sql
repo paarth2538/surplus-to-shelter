@@ -271,8 +271,8 @@ create table if not exists public.pickup_requests (
 
 alter table public.pickup_requests enable row level security;
 
-create policy "Anyone can submit pickup requests"
-  on public.pickup_requests
+drop policy if exists "Anyone can submit pickup requests" on public.pickup_requests;
+create policy "Anyone can submit pickup requests" on public.pickup_requests
   for insert
   to anon, authenticated
   with check (true);
@@ -326,7 +326,8 @@ begin
     where tgname = 'on_auth_user_created'
       and tgrelid = 'auth.users'::regclass
   ) then
-    create trigger on_auth_user_created
+    drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
       after insert on auth.users
       for each row execute function public.handle_new_user();
   end if;
@@ -404,7 +405,8 @@ begin
     where tgname = 'prevent_shelter_verification_change'
       and tgrelid = 'public.shelters'::regclass
   ) then
-    create trigger prevent_shelter_verification_change
+    drop trigger if exists prevent_shelter_verification_change on public.shelters;
+create trigger prevent_shelter_verification_change
       before update on public.shelters
       for each row execute function public.prevent_shelter_verification_change();
   end if;
@@ -834,7 +836,8 @@ begin
     where tgname = 'prevent_profile_role_change'
       and tgrelid = 'public.profiles'::regclass
   ) then
-    create trigger prevent_profile_role_change
+    drop trigger if exists prevent_profile_role_change on public.profiles;
+create trigger prevent_profile_role_change
       before update on public.profiles
       for each row execute function public.prevent_profile_role_change();
   end if;
@@ -904,12 +907,12 @@ $$;
 revoke all on function public.assign_driver_to_match(uuid, uuid, timestamptz) from public;
 grant execute on function public.assign_driver_to_match(uuid, uuid, timestamptz) to authenticated;
 
-create policy "Users can read their own profile"
-  on public.profiles for select to authenticated
+drop policy if exists "Users can read their own profile" on public.profiles;
+create policy "Users can read their own profile" on public.profiles for select to authenticated
   using (id = (select auth.uid()));
 
-create policy "Drivers can view assigned pickup donor profiles"
-  on public.profiles for select to authenticated
+drop policy if exists "Drivers can view assigned pickup donor profiles" on public.profiles;
+create policy "Drivers can view assigned pickup donor profiles" on public.profiles for select to authenticated
   using (
     exists (
       select 1
@@ -921,24 +924,24 @@ create policy "Drivers can view assigned pickup donor profiles"
     )
   );
 
-create policy "Users can create their own profile"
-  on public.profiles for insert to authenticated
+drop policy if exists "Users can create their own profile" on public.profiles;
+create policy "Users can create their own profile" on public.profiles for insert to authenticated
   with check (id = (select auth.uid()) and role = 'donor');
 
-create policy "Users can update their own profile"
-  on public.profiles for update to authenticated
+drop policy if exists "Users can update their own profile" on public.profiles;
+create policy "Users can update their own profile" on public.profiles for update to authenticated
   using (id = (select auth.uid()))
   with check (id = (select auth.uid()));
 
-create policy "Donors can create their own donations"
-  on public.donations for insert to authenticated
+drop policy if exists "Donors can create their own donations" on public.donations;
+create policy "Donors can create their own donations" on public.donations for insert to authenticated
   with check (
     donor_id = (select auth.uid())
     and public.is_profile_role('donor')
   );
 
-create policy "Relevant users can view donations"
-  on public.donations for select to authenticated
+drop policy if exists "Relevant users can view donations" on public.donations;
+create policy "Relevant users can view donations" on public.donations for select to authenticated
   using (
     donor_id = (select auth.uid())
     or public.is_profile_role('shelter')
@@ -946,29 +949,29 @@ create policy "Relevant users can view donations"
     or public.can_view_donation(id)
   );
 
-create policy "Donors can update their own donations"
-  on public.donations for update to authenticated
+drop policy if exists "Donors can update their own donations" on public.donations;
+create policy "Donors can update their own donations" on public.donations for update to authenticated
   using (donor_id = (select auth.uid()))
   with check (donor_id = (select auth.uid()));
 
-create policy "Authenticated users can view verified shelters"
-  on public.shelters for select to authenticated
+drop policy if exists "Authenticated users can view verified shelters" on public.shelters;
+create policy "Authenticated users can view verified shelters" on public.shelters for select to authenticated
   using (verified = true or profile_id = (select auth.uid()));
 
-create policy "Shelter users can create their own shelter"
-  on public.shelters for insert to authenticated
+drop policy if exists "Shelter users can create their own shelter" on public.shelters;
+create policy "Shelter users can create their own shelter" on public.shelters for insert to authenticated
   with check (
     profile_id = (select auth.uid())
     and public.is_profile_role('shelter')
   );
 
-create policy "Shelter users can update their own shelter"
-  on public.shelters for update to authenticated
+drop policy if exists "Shelter users can update their own shelter" on public.shelters;
+create policy "Shelter users can update their own shelter" on public.shelters for update to authenticated
   using (profile_id = (select auth.uid()))
   with check (profile_id = (select auth.uid()));
 
-create policy "Shelters can view their own requests"
-  on public.shelter_requests for select to authenticated
+drop policy if exists "Shelters can view their own requests" on public.shelter_requests;
+create policy "Shelters can view their own requests" on public.shelter_requests for select to authenticated
   using (
     exists (
       select 1 from public.shelters s
@@ -976,8 +979,8 @@ create policy "Shelters can view their own requests"
     )
   );
 
-create policy "Shelters can create their own requests"
-  on public.shelter_requests for insert to authenticated
+drop policy if exists "Shelters can create their own requests" on public.shelter_requests;
+create policy "Shelters can create their own requests" on public.shelter_requests for insert to authenticated
   with check (
     public.is_profile_role('shelter')
     and exists (
@@ -986,8 +989,8 @@ create policy "Shelters can create their own requests"
     )
   );
 
-create policy "Shelters can update their open requests"
-  on public.shelter_requests for update to authenticated
+drop policy if exists "Shelters can update their open requests" on public.shelter_requests;
+create policy "Shelters can update their open requests" on public.shelter_requests for update to authenticated
   using (
     status = 'open'
     and exists (
@@ -1003,41 +1006,41 @@ create policy "Shelters can update their open requests"
     )
   );
 
-create policy "Drivers can read their own driver record"
-  on public.drivers for select to authenticated
+drop policy if exists "Drivers can read their own driver record" on public.drivers;
+create policy "Drivers can read their own driver record" on public.drivers for select to authenticated
   using (coalesce(user_id, profile_id) = (select auth.uid()));
 
-create policy "Driver users can create their own driver record"
-  on public.drivers for insert to authenticated
+drop policy if exists "Driver users can create their own driver record" on public.drivers;
+create policy "Driver users can create their own driver record" on public.drivers for insert to authenticated
   with check (
     profile_id = (select auth.uid())
     and public.is_profile_role('driver')
   );
 
-create policy "Drivers can update their own driver record"
-  on public.drivers for update to authenticated
+drop policy if exists "Drivers can update their own driver record" on public.drivers;
+create policy "Drivers can update their own driver record" on public.drivers for update to authenticated
   using (coalesce(user_id, profile_id) = (select auth.uid()))
   with check (coalesce(user_id, profile_id) = (select auth.uid()));
 
-create policy "Relevant users can view pickups"
-  on public.pickups for select to authenticated
+drop policy if exists "Relevant users can view pickups" on public.pickups;
+create policy "Relevant users can view pickups" on public.pickups for select to authenticated
   using (public.can_view_pickup(id));
 
-create policy "Drivers view assigned pickups"
-  on public.pickups for select to authenticated
+drop policy if exists "Drivers view assigned pickups" on public.pickups;
+create policy "Drivers view assigned pickups" on public.pickups for select to authenticated
   using (
     public.can_view_pickup(id)
   );
 
-create policy "Donors and admins can create pickups"
-  on public.pickups for insert to authenticated
+drop policy if exists "Donors and admins can create pickups" on public.pickups;
+create policy "Donors and admins can create pickups" on public.pickups for insert to authenticated
   with check (
     public.owns_donation(donation_id)
     or public.is_profile_role('admin')
   );
 
-create policy "Assigned drivers can update pickups"
-  on public.pickups for update to authenticated
+drop policy if exists "Assigned drivers can update pickups" on public.pickups;
+create policy "Assigned drivers can update pickups" on public.pickups for update to authenticated
   using (
     public.is_assigned_driver(id)
     or public.is_profile_role('admin')
@@ -1047,17 +1050,17 @@ create policy "Assigned drivers can update pickups"
     or public.is_profile_role('admin')
   );
 
-create policy "Drivers update assigned pickups"
-  on public.pickups for update to authenticated
+drop policy if exists "Drivers update assigned pickups" on public.pickups;
+create policy "Drivers update assigned pickups" on public.pickups for update to authenticated
   using (public.is_assigned_driver(id))
   with check (public.is_assigned_driver(id));
 
-create policy "System creates pickups"
-  on public.pickups for insert to service_role
+drop policy if exists "System creates pickups" on public.pickups;
+create policy "System creates pickups" on public.pickups for insert to service_role
   with check (true);
 
-create policy "Relevant users can view matches"
-  on public.matches for select to authenticated
+drop policy if exists "Relevant users can view matches" on public.matches;
+create policy "Relevant users can view matches" on public.matches for select to authenticated
   using (
     exists (
       select 1 from public.donations d
@@ -1072,8 +1075,8 @@ create policy "Relevant users can view matches"
     or public.is_profile_role('admin')
   );
 
-create policy "Relevant users can view impact"
-  on public.impact for select to authenticated
+drop policy if exists "Relevant users can view impact" on public.impact;
+create policy "Relevant users can view impact" on public.impact for select to authenticated
   using (
     public.owns_donation(donation_id)
     or public.is_profile_role('admin')
@@ -1093,29 +1096,29 @@ create policy "Relevant users can view impact"
     )
   );
 
-create policy "Admins can create impact records"
-  on public.impact for insert to authenticated
+drop policy if exists "Admins can create impact records" on public.impact;
+create policy "Admins can create impact records" on public.impact for insert to authenticated
   with check (
     public.is_profile_role('admin')
   );
 
-create policy "Users can view their own notifications"
-  on public.notification_events for select to authenticated
+drop policy if exists "Users can view their own notifications" on public.notification_events;
+create policy "Users can view their own notifications" on public.notification_events for select to authenticated
   using (user_id = (select auth.uid()));
 
-create policy "Users can update their own notifications"
-  on public.notification_events for update to authenticated
+drop policy if exists "Users can update their own notifications" on public.notification_events;
+create policy "Users can update their own notifications" on public.notification_events for update to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 
-create policy "Admins can view all notifications"
-  on public.notification_events for select to authenticated
+drop policy if exists "Admins can view all notifications" on public.notification_events;
+create policy "Admins can view all notifications" on public.notification_events for select to authenticated
   using (public.is_profile_role('admin'));
 
 alter table public.notification_preferences enable row level security;
 
-create policy "Users manage own notification preferences"
-  on public.notification_preferences for all to authenticated
+drop policy if exists "Users manage own notification preferences" on public.notification_preferences;
+create policy "Users manage own notification preferences" on public.notification_preferences for all to authenticated
   using (user_id = (select auth.uid()))
   with check (user_id = (select auth.uid()));
 
