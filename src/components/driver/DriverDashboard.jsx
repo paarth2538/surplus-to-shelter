@@ -317,7 +317,7 @@ export default function DriverDashboard({ user, profile }) {
         <div><span>Today&apos;s pickups</span><strong>{todayPickups}</strong></div>
         <div><span>This week</span><strong>{weeklyPickups}</strong></div>
         <div><span>Total completed</span><strong>{deliveredCount}</strong></div>
-        <div><span>Avg rating</span><strong title={rescuedWeight ? `${rescuedWeight} kg rescued` : 'No ratings recorded yet'}>—</strong></div>
+        <div><span>Rescued cargo</span><strong title={rescuedWeight ? `${rescuedWeight} kg rescued` : 'No verified rescue weights yet'}>{rescuedWeight ? `${Math.round(rescuedWeight * 10) / 10} kg` : '0 kg'}</strong></div>
       </div>
 
       <div className="driver-dashboard-grid">

@@ -33,6 +33,14 @@ export default function App() {
     crates: '12',
     address: ''
   });
+  const [publicMetrics, setPublicMetrics] = useState({
+    totalDeliveries: 0,
+    totalWeight: 0,
+    totalMeals: 0,
+    sheltersServed: 0,
+    totalCo2e: 0,
+    loading: true
+  });
 
   const navigate = (path) => {
     if (window.location.pathname !== path) {
@@ -70,6 +78,48 @@ export default function App() {
       navigate(`/${profile.role}`);
     }
   }, [loading, user, profile, pathname]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setPublicMetrics((prev) => ({ ...prev, loading: false }));
+      return undefined;
+    }
+    let isMounted = true;
+    const loadPublicMetrics = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_public_impact_metrics');
+        if (!isMounted) return;
+        if (!error && data && typeof data === 'object') {
+          setPublicMetrics({
+            totalDeliveries: Number(data.total_deliveries) || 0,
+            totalWeight: Number(data.total_weight_kg) || 0,
+            totalMeals: Number(data.total_meals) || 0,
+            sheltersServed: Number(data.shelters_served) || 0,
+            totalCo2e: Number(data.total_co2e_avoided) || 0,
+            loading: false
+          });
+        } else {
+          const { count } = await supabase
+            .from('pickups')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'DELIVERED');
+          if (!isMounted) return;
+          setPublicMetrics({
+            totalDeliveries: count || 0,
+            totalWeight: 0,
+            totalMeals: 0,
+            sheltersServed: 0,
+            totalCo2e: 0,
+            loading: false
+          });
+        }
+      } catch {
+        if (isMounted) setPublicMetrics((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    void loadPublicMetrics();
+    return () => { isMounted = false; };
+  }, []);
 
   const pathParts = pathname.split('/').filter(Boolean);
   const requestedRole = pathParts[0] || '';
@@ -242,6 +292,9 @@ export default function App() {
                   if (item === 'Track & Dispatches') setActiveMode('tracking');
                   if (item === 'Our Story') setActiveMode('stories');
                   if (item === 'How It Works') setActiveMode('van');
+                  if (item === 'Live Impact') {
+                    document.getElementById('live-impact-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
               >
                 {item}
@@ -375,15 +428,24 @@ export default function App() {
       </section>
 
       {/* Live Impact Telemetry Bar */}
-      <section className="telemetry-bar-section">
+      <section className="telemetry-bar-section" id="live-impact-section">
         <div className="telemetry-container">
           <div className="telemetry-header">
             <div className="telemetry-title-group">
               <span className="pulse-indicator"></span>
               <h2 className="telemetry-heading">Live Impact Network Telemetry</h2>
             </div>
-            <div className="telemetry-tag">
-              Automated cold-chain balancing active across 14 biological zones
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="telemetry-tag">
+                Real-time verified delivery data across community shelter routes
+              </div>
+              <button
+                className="btn-pill-secondary"
+                style={{ fontSize: 13, padding: '6px 16px' }}
+                onClick={() => navigate(user ? `/${profile?.role || 'donor'}` : '/impact')}
+              >
+                View Full Impact Dashboard →
+              </button>
             </div>
           </div>
 
@@ -391,41 +453,43 @@ export default function App() {
             <div className="telemetry-card">
               <div className="tcard-top">
                 <span className="tcard-icon">📦</span>
-                <span className="tcard-badge badge-emerald">+28% this month</span>
+                <span className="tcard-badge badge-emerald">Verified</span>
               </div>
-              <div className="tcard-value">1.4M+</div>
-              <div className="tcard-title">Lbs Rescued & Delivered</div>
-              <div className="tcard-detail">Since February 2024</div>
+              <div className="tcard-value">
+                {publicMetrics.totalWeight > 0 ? `${publicMetrics.totalWeight} kg` : `${publicMetrics.totalDeliveries}`}
+              </div>
+              <div className="tcard-title">{publicMetrics.totalWeight > 0 ? 'Food Rescued & Delivered' : 'Completed Deliveries'}</div>
+              <div className="tcard-detail">Verified operational data</div>
             </div>
 
             <div className="telemetry-card">
               <div className="tcard-top">
                 <span className="tcard-icon">🏠</span>
-                <span className="tcard-badge badge-blue">Verified</span>
+                <span className="tcard-badge badge-blue">Supplied</span>
               </div>
-              <div className="tcard-value">340+</div>
+              <div className="tcard-value">{publicMetrics.sheltersServed}</div>
               <div className="tcard-title">Shelters Actively Supplied</div>
-              <div className="tcard-detail">Full municipal coverage</div>
+              <div className="tcard-detail">Community receiving network</div>
             </div>
 
             <div className="telemetry-card">
               <div className="tcard-top">
-                <span className="tcard-icon">⏱️</span>
-                <span className="tcard-badge badge-purple">Dispatched</span>
+                <span className="tcard-icon">🍽️</span>
+                <span className="tcard-badge badge-purple">Meals</span>
               </div>
-              <div className="tcard-value">18 min</div>
-              <div className="tcard-title">Avg Courier Match Time</div>
-              <div className="tcard-detail">From pickup call to dispatch</div>
+              <div className="tcard-value">{publicMetrics.totalMeals}</div>
+              <div className="tcard-title">Meals Rescued & Shared</div>
+              <div className="tcard-detail">Direct nutrition support</div>
             </div>
 
             <div className="telemetry-card">
               <div className="tcard-top">
-                <span className="tcard-icon">❄️</span>
-                <span className="tcard-badge badge-emerald">Inspected</span>
+                <span className="tcard-icon">🌿</span>
+                <span className="tcard-badge badge-emerald">Diverted</span>
               </div>
-              <div className="tcard-value">99.4%</div>
-              <div className="tcard-title">Cold-Chain Freshness Kept</div>
-              <div className="tcard-detail">Health-certified log</div>
+              <div className="tcard-value">{publicMetrics.totalCo2e > 0 ? `${publicMetrics.totalCo2e} kg` : '0 kg'}</div>
+              <div className="tcard-title">CO₂e Emissions Avoided</div>
+              <div className="tcard-detail">Landfill diversion impact</div>
             </div>
           </div>
         </div>
