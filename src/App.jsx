@@ -4,6 +4,8 @@ import AuthModal from './components/AuthModal';
 import DonationModal from './components/DonationModal';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleDashboard from './components/RoleDashboard';
+import DispatchDashboard from './components/dispatch/DispatchDashboard';
+import PickupTrackingView from './components/shared/PickupTrackingView';
 import { useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -47,8 +49,10 @@ export default function App() {
   useEffect(() => {
     if (loading) return;
 
-    const requestedRole = pathname.slice(1);
-    const protectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin'].includes(requestedRole);
+    const pathParts = pathname.split('/').filter(Boolean);
+    const requestedRole = pathParts[0] || '';
+    const isTrackingPath = pathParts.length === 3 && pathParts[1] === 'pickup';
+    const protectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) || isTrackingPath;
 
     if (!user && protectedPath) {
       navigate('/login');
@@ -60,19 +64,28 @@ export default function App() {
       return;
     }
 
-    if (user && profile && ['donor', 'shelter', 'driver', 'admin'].includes(requestedRole) && requestedRole !== profile.role) {
+    if (user && profile && ['donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) && requestedRole !== profile.role && !(requestedRole === 'dispatch' && profile.role === 'admin')) {
       navigate(`/${profile.role}`);
     }
   }, [loading, user, profile, pathname]);
 
-  const requestedRole = pathname.slice(1);
-  const isProtectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin'].includes(requestedRole);
+  const pathParts = pathname.split('/').filter(Boolean);
+  const requestedRole = pathParts[0] || '';
+  const isTrackingPath = pathParts.length === 3 && pathParts[1] === 'pickup';
+  const trackingPickupId = isTrackingPath ? pathParts[2] : null;
+  const isProtectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) || isTrackingPath;
 
   if (loading) {
     return <div className="auth-loading-state">Restoring your secure session...</div>;
   }
 
   if (isProtectedPath) {
+    if (requestedRole === 'dispatch') {
+      return <ProtectedRoute allowedRoles={['admin']} onNavigate={navigate}><DispatchDashboard user={user} onNavigate={navigate} onSignOut={async () => { await signOut(); navigate('/'); }} /></ProtectedRoute>;
+    }
+    if (isTrackingPath) {
+      return <ProtectedRoute allowedRoles={[requestedRole]} onNavigate={navigate}><PickupTrackingView pickupId={trackingPickupId} user={user} role={requestedRole} onBack={() => navigate(`/${requestedRole}`)} /></ProtectedRoute>;
+    }
     return (
       <ProtectedRoute
         allowedRoles={requestedRole === 'dashboard' ? [profile?.role] : [requestedRole]}
