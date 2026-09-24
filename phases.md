@@ -161,8 +161,15 @@ Driver -> Location updates -> Supabase -> Live tracking interface -> Shelter/Don
 - Relevant user targeting.
 - Optional email or Telegram notifications where appropriate.
 
-**Status:** ⏳ Planned
+**Status:** ✅ Complete
 **Completion condition:** Important workflow events generate useful notifications for the appropriate users.
+
+**Implementation details:**
+- Migration `supabase/migrations/007_phase9_notifications_communication.sql` introduces deterministic deduplication (`notification_events_idempotency_idx`), RLS policies restricting access to `auth.uid()`, user notification preferences (`notification_preferences`), secure `create_notification` RPC, automated role-aware triggers on `pickups`, `matches`, and `shelter_requests`, and `check_and_notify_expiring_donations`.
+- Server-side Edge Function boundary `supabase/functions/notify/index.ts` allows secure external Telegram bot and Email dispatch using server-only environment variables.
+- Real-time notification hook `src/hooks/useNotifications.js` handles Postgres INSERT/UPDATE changes via Supabase Realtime with duplicate prevention and optimistic read updates.
+- Full UI Notification Center: `NotificationBell`, `NotificationPanel`, `ToastBanner`, and `NotificationPreferencesModal` integrated across all role dashboards and headers.
+- Contextual tap-to-call communication actions for drivers, donors, and shelters.
 
 ## Phase 10 - AI & Predictive Intelligence
 **Aim:** Add intelligent capabilities that improve surplus allocation and logistics.
@@ -235,7 +242,7 @@ User Signup/Login
 | Phase 6 - Pickup, Driver & Dispatch | ✅ Complete |
 | Phase 7 - Live Tracking & Logistics | ✅ Complete |
 | Phase 8 - Impact Dashboard & Verification | ✅ Complete |
-| Phase 9 - Notifications & Communication | ⏳ Planned |
+| Phase 9 - Notifications & Communication | ✅ Complete |
 | Phase 10 - AI & Predictive Intelligence | ⏳ Planned |
 | Phase 11 - Security, Testing & Reliability | ⏳ Planned |
 | Phase 12 - Production & Hackathon Demo | ⏳ Planned |

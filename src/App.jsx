@@ -8,6 +8,7 @@ import DispatchDashboard from './components/dispatch/DispatchDashboard';
 import PickupTrackingView from './components/shared/PickupTrackingView';
 import PickupLogisticsMap from './components/shared/PickupLogisticsMap';
 import ImpactDashboard from './components/impact/ImpactDashboard';
+import NotificationBell from './components/notifications/NotificationBell';
 import { useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -136,7 +137,7 @@ export default function App() {
       return <ProtectedRoute allowedRoles={['admin']} onNavigate={navigate}><DispatchDashboard user={user} onNavigate={navigate} onSignOut={async () => { await signOut(); navigate('/'); }} /></ProtectedRoute>;
     }
     if (requestedRole === 'impact') {
-      return <ProtectedRoute allowedRoles={['donor', 'shelter', 'driver', 'admin']} onNavigate={navigate}><main className="dashboard-shell"><header className="dashboard-topbar"><button className="brand-logo" onClick={() => navigate('/')} aria-label="Go to home"><div className="logo-icon-wrap"><svg className="brand-circles-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="20" cy="24" r="14" fill="#2b60ec" fillOpacity="0.18" /><circle cx="28" cy="24" r="14" fill="#2b60ec" /><circle cx="20" cy="24" r="8" fill="#ffffff" /></svg></div><div className="brand-text"><span className="brand-title">surplus<span className="brand-accent">2</span>shelter</span><span className="brand-sub">DIRECT CARE LOGISTICS</span></div></button><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><button className="impact-tab-btn" onClick={() => navigate(`/${profile?.role || 'dashboard'}`)}>← Back to Dashboard</button><button className="btn-pill-secondary" onClick={async () => { await signOut(); navigate('/'); }}>Log out</button></div></header><ImpactDashboard onNavigate={navigate} /></main></ProtectedRoute>;
+      return <ProtectedRoute allowedRoles={['donor', 'shelter', 'driver', 'admin']} onNavigate={navigate}><main className="dashboard-shell"><header className="dashboard-topbar"><button className="brand-logo" onClick={() => navigate('/')} aria-label="Go to home"><div className="logo-icon-wrap"><svg className="brand-circles-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="20" cy="24" r="14" fill="#2b60ec" fillOpacity="0.18" /><circle cx="28" cy="24" r="14" fill="#2b60ec" /><circle cx="20" cy="24" r="8" fill="#ffffff" /></svg></div><div className="brand-text"><span className="brand-title">surplus<span className="brand-accent">2</span>shelter</span><span className="brand-sub">DIRECT CARE LOGISTICS</span></div></button><div style={{ display: 'flex', gap: 12, alignItems: 'center' }}><NotificationBell user={user} role={profile?.role} onNavigate={navigate} /><button className="impact-tab-btn" onClick={() => navigate(`/${profile?.role || 'dashboard'}`)}>← Back to Dashboard</button><button className="btn-pill-secondary" onClick={async () => { await signOut(); navigate('/'); }}>Log out</button></div></header><ImpactDashboard onNavigate={navigate} /></main></ProtectedRoute>;
     }
     if (isTrackingPath) {
       return <ProtectedRoute allowedRoles={[requestedRole]} onNavigate={navigate}><PickupTrackingView pickupId={trackingPickupId} user={user} role={requestedRole} onBack={() => navigate(`/${requestedRole}`)} /><PickupLogisticsMap pickupId={trackingPickupId} /></ProtectedRoute>;
@@ -315,9 +316,11 @@ export default function App() {
               Request Supplies
             </button>
             {user ? (
-              <div className="profile-menu-wrap">
-                <button
-                  className="user-avatar-pill"
+              <>
+                <NotificationBell user={user} role={profile?.role} onNavigate={navigate} />
+                <div className="profile-menu-wrap">
+                  <button
+                    className="user-avatar-pill"
                   title={`${profile?.name || profile?.email || 'Account'} profile`}
                   onClick={() => setIsProfileMenuOpen((current) => !current)}
                 >
@@ -331,7 +334,8 @@ export default function App() {
                     <button onClick={async () => { await signOut(); navigate('/'); }}>Log out</button>
                   </div>
                 ) : null}
-              </div>
+                </div>
+              </>
             ) : (
               <button className="btn-pill-secondary" onClick={() => { setIsAuthModalOpen(true); navigate('/login'); }}>
                 Log in

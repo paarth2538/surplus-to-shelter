@@ -224,5 +224,26 @@ Do not claim the database is fixed until those checks succeed in Supabase.
   - `public.impact` added to Supabase Realtime publication.
 - **Unit handling:** Weight units (`kg`, `lbs`, `g`, `oz`) are normalized to kg. Meal/serving units are counted directly. Non-convertible units (`boxes`, `crates`, `packets`) are shown in a separate breakdown — never blindly summed with kg.
 - **Validation:** `npm run lint` passes (0 errors, 9 pre-existing warnings). `npm run build` succeeds.
-- **External actions required:** Apply migration `006_phase8_impact_verification.sql` in the Supabase SQL editor. Test with authenticated accounts in each role.
 - **Scope:** Phase 8 only. No Phase 9 notifications, email, SMS, or push were implemented.
+
+### 2026-09-25 - Phase 9 robust notifications and communication system
+
+- **Goal:** Build a robust, real-time, role-aware notification and communication system integrated with existing Supabase architecture. Real events, strict deduplication, RLS security, and zero hardcoded or fake notifications.
+- **Files changed:**
+  - `supabase/migrations/007_phase9_notifications_communication.sql` — new migration with `related_entity_type`, `related_entity_id`, and `idempotency_key` columns on `public.notification_events`, unique deduplication index `(user_id, idempotency_key)`, RLS policies, user notification preferences table `public.notification_preferences`, secure `create_notification` RPC, automated role-aware triggers on `pickups` and `matches`, urgent request trigger on `shelter_requests`, and `check_and_notify_expiring_donations` RPC.
+  - `supabase/schema.sql` — synchronized with Phase 9 schema enhancements, RLS, functions, and triggers.
+  - `supabase/functions/notify/index.ts` — server-side Edge Function boundary for secure Telegram and Email dispatch reading secrets strictly from `Deno.env` (never exposed to browser clients).
+  - `src/hooks/useNotifications.js` — upgraded hook with Supabase Realtime channel subscription, deduplication guard, optimistic `markRead` and `markAllRead`, filter tabs (`all` vs `unread`), and in-app toast event dispatching.
+  - `src/components/notifications/NotificationBell.jsx` — topbar notification bell with unread badge counter, popover toggle, click-outside handling, and escape key listener.
+  - `src/components/notifications/NotificationPanel.jsx` — popover panel with filter tabs, relative timestamps, type icons (📦, 🤝, 🚚, 🥬, ⚡, 🎉, ⚠️, ⏳), contextual entity links, mark all read, individual mark read, and realtime status.
+  - `src/components/notifications/ToastBanner.jsx` — floating realtime in-app alert banner for immediate event feedback.
+  - `src/components/notifications/NotificationPreferencesModal.jsx` — modal for configuring in-app, urgent expiry, email, and Telegram alert settings saved directly to `public.notification_preferences`.
+  - `src/components/notifications/notifications.css` — modular stylesheet for notification components.
+  - `src/components/RoleDashboard.jsx` — integrated `NotificationBell` in topbar for all roles (donor, shelter, driver, admin).
+  - `src/App.jsx` — integrated `NotificationBell` in `/impact` header and landing page authenticated topbar.
+  - `src/components/shared/PickupTrackingView.jsx` — added contextual tap-to-call link for driver.
+  - `src/components/driver/DriverDashboard.jsx` — added contextual tap-to-call links for donor and shelter in pickup modal.
+- **Validation:** `npm run lint` passes (0 errors, 10 pre-existing warnings). `npm run build` succeeds in 511ms.
+- **Security Check:** Verified zero secrets (`SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `SMTP_PASSWORD`) in client-side code.
+- **Scope:** Phase 9 complete. Phase 10 (AI & Predictive Intelligence) not started.
+

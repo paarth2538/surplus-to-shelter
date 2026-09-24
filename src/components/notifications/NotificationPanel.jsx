@@ -52,7 +52,8 @@ export default function NotificationPanel({
   onMarkAllRead,
   onNotificationClick,
   onClose,
-  onRefresh
+  onRefresh,
+  onOpenSettings
 }) {
   return (
     <div
@@ -77,6 +78,18 @@ export default function NotificationPanel({
               title="Mark all notifications as read"
             >
               Mark all read
+            </button>
+          ) : null}
+          {onOpenSettings ? (
+            <button
+              type="button"
+              className="notification-settings-btn"
+              onClick={onOpenSettings}
+              title="Alert Preferences"
+              aria-label="Alert Preferences"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+            >
+              ⚙️
             </button>
           ) : null}
           <button

@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import useNotifications from '../../hooks/useNotifications';
 import NotificationPanel from './NotificationPanel';
 import ToastBanner from './ToastBanner';
+import NotificationPreferencesModal from './NotificationPreferencesModal';
 import './notifications.css';
 
 export default function NotificationBell({ user, role, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const containerRef = useRef(null);
 
   const {
@@ -96,6 +98,17 @@ export default function NotificationBell({ user, role, onNavigate }) {
           onNotificationClick={handleNotificationClick}
           onClose={() => setIsOpen(false)}
           onRefresh={refetch}
+          onOpenSettings={() => {
+            setIsOpen(false);
+            setIsSettingsOpen(true);
+          }}
+        />
+      ) : null}
+
+      {isSettingsOpen ? (
+        <NotificationPreferencesModal
+          user={user}
+          onClose={() => setIsSettingsOpen(false)}
         />
       ) : null}
 
