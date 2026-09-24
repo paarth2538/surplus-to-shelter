@@ -247,3 +247,30 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **Security Check:** Verified zero secrets (`SUPABASE_SERVICE_ROLE_KEY`, `TELEGRAM_BOT_TOKEN`, `SMTP_PASSWORD`) in client-side code.
 - **Scope:** Phase 9 complete. Phase 10 (AI & Predictive Intelligence) not started.
 
+
+---
+
+## Phase 10 — AI & Predictive Intelligence
+
+- **Goal:** Add meaningful AI/predictive features that improve existing workflows using real project data.
+- **Features implemented:**
+  1. **AI Photo Intake (DonationModal)** — Donor uploads/captures a photo; a Deno Edge Function calls Gemini 1.5 Flash (or GPT-4o-mini fallback) and returns food_type, item name, estimated quantity + unit, and suggested expiry window. Results PREFILL form fields; donor reviews, edits and confirms. Never auto-submits. Shows `✨ AI estimate` pill next to prefilled values that disappear on manual edit.
+  2. **Expiry-Risk Prediction (MatchList)** — Calls `get_donation_risk_assessment(uuid)` RPC per match to return low/medium/high/critical risk with plain reason. Cached in component state. Renders color-coded risk pill on each match card alongside a `Why this match?` rationale built from real score fields (category, quantity coverage, distance, expiry, urgency).
+  3. **Community Demand Insights (DonorDashboard + ShelterDashboard)** — Calls `get_demand_insights()` RPC; shows top food categories as a mini bar chart with proportional fills. Renders honest `Not enough community data yet` message when `has_sufficient_data === false` (fewer than 3 shelter_requests).
+- **Files changed:**
+  - `supabase/migrations/008_phase10_ai.sql` — CREATED: adds `ai_estimated boolean`, `ai_metadata jsonb`, `expiry_risk text` columns to `public.donations`; adds `donations_expiry_risk_idx`; adds `get_donation_risk_assessment(uuid)` and `get_demand_insights()` PLPGSQL RPCs (SECURITY DEFINER, authenticated only).
+  - `supabase/schema.sql` — APPENDED: Phase 10 columns, index, and function definitions synchronized.
+  - `supabase/functions/ai-food-intake/index.ts` — CREATED: Deno Edge Function; verifies JWT; per-user 10 req/min rate limit; validates mime_type + size (<7 MB base64); calls Gemini or OpenAI with 12s timeout; sanitizes output against exact enums; returns 503 gracefully if no API key is set.
+  - `src/components/DonationModal.jsx` — REWRITTEN: AI Photo Intake section, FileReader->base64->Edge Function flow, prefill with estimate tags, ai_estimated/ai_metadata saved on submit.
+  - `src/components/MatchList.jsx` — UPDATED: fetches expiry-risk from RPC (cached by donation_id), renders risk pill + `Why this match?` rationale section composed from real match fields.
+  - `src/components/donor/DonorDashboard.jsx` — EXPANDED: added DemandInsightsCard calling get_demand_insights() RPC with bar chart and honest empty state.
+  - `src/components/shelter/ShelterDashboard.jsx` — EXPANDED: same DemandInsightsCard for shelter role.
+  - `src/App.css` — APPENDED: .ai-photo-intake-card, .ai-scan-btn, .ai-estimate-pill, .form-label-row, .risk-pill/.risk-{low,medium,high,critical}, .match-card-badges, .match-rationale, .demand-insights-card, .demand-category-bar, .demand-bar-track/.fill, @keyframes ai-spin, responsive overrides.
+- **DB changes:** 3 additive columns on `public.donations` (non-breaking), 1 index, 2 new RPC functions — no existing columns or RLS policies modified.
+- **Validation:** `npm run lint` 0 errors (12 warnings, all pre-existing). `npm run build` succeeds (637ms, 103 modules). No new npm dependencies added.
+- **External actions required:**
+  - Apply migration `008_phase10_ai.sql` in Supabase Dashboard → SQL Editor.
+  - Deploy Edge Function: `supabase functions deploy ai-food-intake`.
+  - Set at least one secret: `supabase secrets set GEMINI_API_KEY=<key>` (preferred) or `OPENAI_API_KEY=<key>`. If neither is set, the UI degrades gracefully (shows error banner, does not block manual entry).
+- **Security:** GEMINI_API_KEY / OPENAI_API_KEY live only in Supabase Edge Function secrets. Supabase service role key never exposed in client-side code.
+- **Scope:** Phase 10 complete. Phase 11 (Security, Testing & Reliability) next.
