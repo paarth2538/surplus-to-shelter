@@ -1,0 +1,7 @@
+import React from 'react';
+import useDispatchData from '../../hooks/useDispatchData';
+
+export default function ShelterDashboard({ user, onNavigate }) {
+  const { allPickups, loading, error } = useDispatchData(user?.id, 'shelter', { initialTab: 'all' });
+  return <section className="visibility-workspace"><span className="kicker-badge"><span className="kicker-dot dot-emerald" />SHELTER INTAKE</span><h1>Incoming deliveries</h1><p>See what is on the way and prepare your receiving team.</p>{loading ? <div className="dispatch-empty">Loading incoming deliveries...</div> : error ? <div className="driver-error">{error}</div> : <div className="visibility-list">{allPickups.length ? allPickups.map((pickup) => <button className={`visibility-row ${pickup.status === 'IN_TRANSIT' || pickup.status === 'PICKUP' ? 'is-arriving' : ''}`} key={pickup.id} onClick={() => onNavigate(`/shelter/pickup/${pickup.id}`)}><span className={`dispatch-status dispatch-status-${pickup.status.toLowerCase()}`}>{pickup.status === 'IN_TRANSIT' ? 'ARRIVING SOON' : pickup.status.replace('_', ' ')}</span><span><strong>{pickup.drivers?.name || 'Driver being assigned'}</strong><small>{pickup.donations?.food_name || 'Surplus goods'} · {pickup.donations?.quantity || '—'} {pickup.donations?.unit || 'units'}</small></span><span className="visibility-arrow">View →</span></button>) : <div className="driver-empty-state">No incoming deliveries yet.</div>}</div>}</section>;
+}

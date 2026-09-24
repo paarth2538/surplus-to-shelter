@@ -1,0 +1,7 @@
+import React from 'react';
+import useDispatchData from '../../hooks/useDispatchData';
+
+export default function DonorDashboard({ user, onNavigate }) {
+  const { allPickups, loading, error } = useDispatchData(user?.id, 'donor', { initialTab: 'all' });
+  return <section className="visibility-workspace"><span className="kicker-badge"><span className="kicker-dot dot-emerald" />DONOR VISIBILITY</span><h1>My pickups</h1><p>Follow every surplus handoff from assignment to delivery.</p>{loading ? <div className="dispatch-empty">Loading your pickups...</div> : error ? <div className="driver-error">{error}</div> : <div className="visibility-list">{allPickups.length ? allPickups.map((pickup) => <button className="visibility-row" key={pickup.id} onClick={() => onNavigate(`/donor/pickup/${pickup.id}`)}><span className={`dispatch-status dispatch-status-${pickup.status.toLowerCase()}`}>{pickup.status.replace('_', ' ')}</span><span><strong>{pickup.drivers?.name || 'Driver being assigned'}</strong><small>{pickup.shelters?.organization_name || 'Shelter pending'} · {pickup.scheduled_at ? new Date(pickup.scheduled_at).toLocaleString() : 'Schedule pending'}</small></span><span className="visibility-arrow">View →</span></button>) : <div className="driver-empty-state">No pickups have been assigned yet.</div>}</div>}</section>;
+}

@@ -160,3 +160,13 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **External actions required:**
 - **Remaining work:**
 - **Commit:**
+
+### 2026-09-24 - Phase 6 pickup, driver, and dispatch system
+
+- **Goal:** Complete driver pickup execution, dispatch management, donor/shelter visibility, shared tracking, realtime updates, notifications, and E2E test tooling.
+- **Files changed:** Added dispatch, donor, shelter, shared tracking, driver wizard, proof capture, location, storage, realtime, notification, dispatch-data, tracking, and Phase 6 E2E script files; updated `App.jsx`, `RoleDashboard.jsx`, `index.css`, `App.css`, `useDriverPickups.js`, and `supabase/schema.sql`.
+- **Database/Supabase changes:** Added delivery proof fields, notification events/RLS/trigger, admin driver-assignment RPC, pickup status trigger integration, and supporting dispatch policies.
+- **Validation:** `npm run lint` and `npm run build` pass; lint retains only pre-existing warnings in `AuthContext.jsx`, `ThreeCanvas.jsx`, and the existing navigation effect. Static file, route, SQL, and diff checks pass. The E2E harness is available at `scripts/phase6-e2e-test.js`.
+- **External actions required:** Run the latest `supabase/schema.sql`, create/configure the public `pickup-proofs` Storage bucket, enable Realtime for `pickups`, `drivers`, and `notification_events`, and run the E2E script with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+- **Remaining work:** Live 12-step Supabase test, browser/mobile keyboard and screen-reader audit, and production console verification require configured external Supabase credentials and test accounts.
+- **Commit:** `79e5259` (`Phase 6: Pickup, Driver & Dispatch System complete`).
