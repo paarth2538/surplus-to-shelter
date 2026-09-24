@@ -189,3 +189,18 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **Validation:** No driver-component `user_id` references remain; `npm run lint` and `npm run build` pass with existing non-blocking warnings.
 - **External actions required:** Test with a real authenticated driver account and verify the row, ownership, availability toggle, refresh, logout, and login in Supabase.
 - **Remaining work:** Live driver-account verification only; no dispatch or other Phase 6 workflow changes were made.
+
+### 2026-09-25 - Phase 6 migration and Phase 7 live tracking & logistics
+
+- **Goal:** Implement live GPS location tracking, Leaflet scoped logistics maps, driver location streaming, and Phase 6/7 database migrations.
+- **Files changed:** `supabase/migrations/004_phase6_pickup_workflow.sql`, `supabase/migrations/005_phase7_live_tracking.sql`, `src/components/shared/PickupLogisticsMap.jsx`, `src/components/dispatch/LiveMapView.jsx`, `src/hooks/usePickupTracking.js`, `src/lib/realtime.js`, `src/App.jsx`, `memory.md`.
+- **Database/Supabase changes:**
+  - Added `004_phase6_pickup_workflow.sql` and `005_phase7_live_tracking.sql` for pickup transitions, GPS latitude/longitude streaming, and telemetry logs.
+  - Aligned queries with schema foreign keys (`pickups.donation_id -> donations.id` and `donations.donor_id`).
+- **Behavior:**
+  - Added Leaflet interactive mapping for pickup origin, shelter destination, and active courier location.
+  - Integrated `subscribeToDriver` and `subscribeToPickup` in `src/lib/realtime.js` for live position updates without polling.
+  - Realtime state synchronizes driver markers, ETA, temperature, and route progress.
+- **Validation:** `npm run lint` passes (0 errors, 7 non-blocking warnings). `npm run build` succeeds in 418ms.
+- **Remaining work:** Apply migrations `004` and `005` in Supabase SQL editor and test end-to-end GPS position updates with an authenticated driver session.
+
