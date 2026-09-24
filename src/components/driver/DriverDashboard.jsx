@@ -56,6 +56,14 @@ function isThisWeek(value, reference = new Date()) {
 export default function DriverDashboard({ user, profile }) {
   const [driver, setDriver] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [setupForm, setSetupForm] = useState({
+    name: profile?.name || '',
+    phone: profile?.phone || '',
+    vehicleType: ''
+  });
+  const [setupErrors, setSetupErrors] = useState({});
+  const [isSavingSetup, setIsSavingSetup] = useState(false);
+  const [setupMessage, setSetupMessage] = useState('');
   const [isSavingAvailability, setIsSavingAvailability] = useState(false);
   const [updatingPickupId, setUpdatingPickupId] = useState(null);
   const [detailsPickup, setDetailsPickup] = useState(null);
@@ -79,6 +87,11 @@ export default function DriverDashboard({ user, profile }) {
     if (driverError) throw driverError;
     if (!driverRecord) {
       setError('Driver profile not set up yet.');
+      setSetupForm((current) => ({
+        ...current,
+        name: current.name || profile?.name || '',
+        phone: current.phone || profile?.phone || ''
+      }));
       setLoading(false);
       return null;
     }
@@ -86,7 +99,7 @@ export default function DriverDashboard({ user, profile }) {
     setDriver(driverRecord);
     setLoading(false);
     return driverRecord;
-  }, [user]);
+  }, [profile?.name, profile?.phone, user]);
 
   useEffect(() => {
     let isMounted = true;
@@ -150,6 +163,81 @@ export default function DriverDashboard({ user, profile }) {
     setIsSavingAvailability(false);
   };
 
+  const updateSetupField = (field, value) => {
+    setSetupForm((current) => ({ ...current, [field]: value }));
+    setSetupErrors((current) => ({ ...current, [field]: '' }));
+    setError('');
+  };
+
+  const saveDriverProfile = async (event) => {
+    event.preventDefault();
+    const nextErrors = {};
+    if (!setupForm.name.trim()) nextErrors.name = 'Name is required.';
+    if (!setupForm.phone.trim()) nextErrors.phone = 'Phone is required.';
+    if (!setupForm.vehicleType.trim()) nextErrors.vehicleType = 'Vehicle type is required.';
+    setSetupErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    setIsSavingSetup(true);
+    setError('');
+    setSetupMessage('');
+    const { data: { user: authenticatedUser }, error: userError } = await supabase.auth.getUser();
+    if (userError || !authenticatedUser) {
+      setError('Please log in as a driver.');
+      setIsSavingSetup(false);
+      return;
+    }
+
+    const { data: existingDriver, error: existingError } = await supabase
+      .from('drivers')
+      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .eq('profile_id', authenticatedUser.id)
+      .maybeSingle();
+
+    if (existingError) {
+      setError(existingError.message || 'Unable to check your driver profile.');
+      setIsSavingSetup(false);
+      return;
+    }
+    if (existingDriver) {
+      setDriver(existingDriver);
+      setError('');
+      setSetupMessage('Driver profile loaded.');
+      setIsSavingSetup(false);
+      return;
+    }
+
+    const { data: createdDriver, error: insertError } = await supabase
+      .from('drivers')
+      .insert({
+        profile_id: authenticatedUser.id,
+        name: setupForm.name.trim(),
+        phone: setupForm.phone.trim(),
+        vehicle_type: setupForm.vehicleType.trim(),
+        available: false
+      })
+      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .single();
+
+    if (insertError) {
+      console.error('[driver-profile-setup]', {
+        message: insertError.message,
+        code: insertError.code,
+        status: insertError.status,
+        details: insertError.details,
+        hint: insertError.hint
+      });
+      setError(insertError.code === '42501' ? "You don't have permission to create this driver profile." : 'Unable to create your driver profile. Please try again.');
+      setIsSavingSetup(false);
+      return;
+    }
+
+    setDriver(createdDriver);
+    setError('');
+    setSetupMessage('Driver profile created successfully.');
+    setIsSavingSetup(false);
+  };
+
   const advancePickup = async (pickup) => {
     const status = nextStatus(pickup.status);
     if (!supabase || !status || updatingPickupId) return;
@@ -179,6 +267,30 @@ export default function DriverDashboard({ user, profile }) {
     return <section className="driver-workspace" aria-live="polite"><div className="driver-skeleton-heading"><span className="driver-skeleton skeleton-kicker" /><span className="driver-skeleton skeleton-title" /><span className="driver-skeleton skeleton-copy" /></div><div className="driver-stats-strip driver-stats-skeleton" aria-label="Loading quick stats">{[1, 2, 3, 4].map((item) => <div key={item}><span className="driver-skeleton skeleton-label" /><strong className="driver-skeleton skeleton-value" /></div>)}</div><div className="driver-skeleton driver-skeleton-card" /></section>;
   }
 
+  if (!driver) {
+    return (
+      <section className="driver-workspace">
+        <div className="driver-workspace-heading">
+          <div>
+            <span className="kicker-badge"><span className="kicker-dot dot-emerald"></span>DRIVER OPERATIONS</span>
+            <h1>Set up your driver profile.</h1>
+            <p>Complete your profile before joining the care network.</p>
+          </div>
+        </div>
+        {error ? <div className="driver-error" role="alert">{error}</div> : null}
+        <form className="driver-profile-setup" onSubmit={saveDriverProfile}>
+          <span className="section-eyebrow">DRIVER PROFILE</span>
+          <h2>Set Up Driver Profile</h2>
+          <div className="form-group"><label htmlFor="driver-name">Name</label><input id="driver-name" value={setupForm.name} onChange={(event) => updateSetupField('name', event.target.value)} />{setupErrors.name ? <span className="field-error">{setupErrors.name}</span> : null}</div>
+          <div className="form-group"><label htmlFor="driver-phone">Phone</label><input id="driver-phone" type="tel" value={setupForm.phone} onChange={(event) => updateSetupField('phone', event.target.value)} />{setupErrors.phone ? <span className="field-error">{setupErrors.phone}</span> : null}</div>
+          <div className="form-group"><label htmlFor="driver-vehicle-type">Vehicle Type</label><input id="driver-vehicle-type" value={setupForm.vehicleType} onChange={(event) => updateSetupField('vehicleType', event.target.value)} placeholder="e.g. Refrigerated van" />{setupErrors.vehicleType ? <span className="field-error">{setupErrors.vehicleType}</span> : null}</div>
+          <p className="workspace-meta">Your profile starts offline. You can change availability after setup.</p>
+          <button type="submit" className="btn-pill-primary" disabled={isSavingSetup}>{isSavingSetup ? 'Saving...' : 'Save Driver Profile'}</button>
+        </form>
+      </section>
+    );
+  }
+
   const isAvailable = Boolean(driver?.available);
 
   return (
@@ -195,6 +307,7 @@ export default function DriverDashboard({ user, profile }) {
         </button>
       </div>
 
+      {setupMessage ? <div className="driver-success" role="status">{setupMessage}</div> : null}
       {workspaceError ? <div className="driver-error" role="alert">{workspaceError}</div> : null}
 
       <div className="driver-stats-strip" aria-label="Driver stats">

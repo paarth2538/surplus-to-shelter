@@ -179,3 +179,13 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **Validation:** No `drivers.user_id` or driver-component `user_id` references remain; `npm run lint` and `npm run build` pass with existing non-blocking warnings.
 - **External actions required:** Test with an authenticated driver account and confirm the owned `public.drivers` row and availability update in Supabase.
 - **Remaining work:** Live driver-account verification only. No dispatch, assignment, tracking, maps, or notification changes were made.
+
+### 2026-09-24 - Driver profile setup
+
+- **Goal:** Fix the missing `public.drivers` row for authenticated users with `profiles.role = 'driver'`.
+- **Files changed:** `src/components/driver/DriverDashboard.jsx`, `src/App.css`, and `memory.md`.
+- **Database/Supabase changes:** None. Existing `drivers.profile_id` ownership and driver insert RLS are used; no `drivers.user_id` column or new table was added.
+- **Behavior:** Missing driver rows now show a setup form prefilled from `profiles.name` and `profiles.phone`; the form requires name, phone, and vehicle type, inserts `profile_id = auth.uid()` with `available = false`, checks for an existing row first, and transitions into the existing workspace without logout.
+- **Validation:** No driver-component `user_id` references remain; `npm run lint` and `npm run build` pass with existing non-blocking warnings.
+- **External actions required:** Test with a real authenticated driver account and verify the row, ownership, availability toggle, refresh, logout, and login in Supabase.
+- **Remaining work:** Live driver-account verification only; no dispatch or other Phase 6 workflow changes were made.
