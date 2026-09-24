@@ -118,6 +118,15 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - Initialized the local Git repository and pushed the complete project to `paarth2538/surplus-to-shelter` on `main`.
 - Excluded `.env.local`, `.env`, `node_modules`, and `dist`.
 
+### 2026-09-24 - Phase 3 donation management started
+
+- Added `src/components/DonationModal.jsx` with donor-owned Supabase inserts, field validation, loading state, duplicate-submit protection, success state, and safe error logging.
+- Updated `src/components/RoleDashboard.jsx` to query real donor-owned donations from `public.donations`, newest first, with loading, empty, error, status, expiry, address, and created-date states.
+- Updated `src/App.jsx` to connect the existing Donate Surplus action and refresh the donor history after a successful insert.
+- Updated `src/App.css` for the donation form and responsive scrollable modal behavior.
+- Verified the local donation form opens from the existing UI. Production database insertion was not completed in this task because it requires an authenticated donor session and a deployed Supabase schema.
+- Phase 3 remains current and incomplete until a real donation row is confirmed in Supabase and after refresh/login in the donor workspace.
+
 ## Future Task Entry Template
 
 ### YYYY-MM-DD - Short task title

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ThreeCanvas from './components/ThreeCanvas';
 import AuthModal from './components/AuthModal';
+import DonationModal from './components/DonationModal';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleDashboard from './components/RoleDashboard';
 import { useAuth } from './context/AuthContext';
@@ -19,6 +20,8 @@ export default function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+  const [donationRefreshKey, setDonationRefreshKey] = useState(0);
 
   const [pickupForm, setPickupForm] = useState({
     businessName: '',
@@ -77,6 +80,8 @@ export default function App() {
       >
         <RoleDashboard
           onNavigate={navigate}
+          onDonate={() => setIsDonationModalOpen(true)}
+          donationRefreshKey={donationRefreshKey}
           onSignOut={async () => {
             await signOut();
             navigate('/');
@@ -228,7 +233,7 @@ export default function App() {
 
           {/* Action Buttons */}
           <div className="nav-actions">
-            <button className="btn-pill-primary" onClick={() => setIsModalOpen(true)}>
+            <button className="btn-pill-primary" onClick={() => setIsDonationModalOpen(true)}>
               Donate Surplus
             </button>
             <button className="btn-pill-secondary" onClick={() => setIsModalOpen(true)}>
@@ -862,6 +867,12 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <DonationModal
+        isOpen={isDonationModalOpen}
+        onClose={() => setIsDonationModalOpen(false)}
+        onCreated={() => setDonationRefreshKey((current) => current + 1)}
+      />
 
       <AuthModal
         isOpen={isAuthModalOpen || pathname === '/login'}
