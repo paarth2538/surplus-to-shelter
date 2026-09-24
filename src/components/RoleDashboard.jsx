@@ -6,6 +6,7 @@ import MatchList from './MatchList';
 import DriverDashboard from './driver/DriverDashboard';
 import DonorDashboard from './donor/DonorDashboard';
 import ShelterDashboard from './shelter/ShelterDashboard';
+import ImpactDashboard from './impact/ImpactDashboard';
 
 const dashboardCopy = {
   donor: { title: 'Donor workspace', description: 'Post surplus food and keep an eye on the care network receiving it.' },
@@ -19,6 +20,7 @@ export default function RoleDashboard({ onNavigate, onSignOut, onDonate, donatio
   const [donations, setDonations] = useState([]);
   const [loadingDonations, setLoadingDonations] = useState(profile.role === 'donor');
   const [donationError, setDonationError] = useState('');
+  const [showImpact, setShowImpact] = useState(false);
   const copy = dashboardCopy[profile.role] ?? dashboardCopy.donor;
 
   useEffect(() => {
@@ -45,9 +47,17 @@ export default function RoleDashboard({ onNavigate, onSignOut, onDonate, donatio
           <div className="logo-icon-wrap"><svg className="brand-circles-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="20" cy="24" r="14" fill="#2b60ec" fillOpacity="0.18" /><circle cx="28" cy="24" r="14" fill="#2b60ec" /><circle cx="20" cy="24" r="8" fill="#ffffff" /></svg></div>
           <div className="brand-text"><span className="brand-title">surplus<span className="brand-accent">2</span>shelter</span><span className="brand-sub">DIRECT CARE LOGISTICS</span></div>
         </button>
-        <button className="btn-pill-secondary" onClick={onSignOut}>Log out</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="impact-tab-btn" onClick={() => setShowImpact(!showImpact)}>
+            📊 {showImpact ? 'Back to Dashboard' : 'Impact'}
+          </button>
+          <button className="btn-pill-secondary" onClick={onSignOut}>Log out</button>
+        </div>
       </header>
-      {profile.role === 'driver' ? <DriverDashboard user={user} profile={profile} /> : profile.role === 'donor' ? (
+
+      {showImpact ? (
+        <ImpactDashboard role={profile.role} onNavigate={onNavigate} />
+      ) : profile.role === 'driver' ? <DriverDashboard user={user} profile={profile} /> : profile.role === 'donor' ? (
         <>
           <DonorDashboard user={user} onNavigate={onNavigate} />
           <section className="dashboard-panel donation-history-section" aria-labelledby="donation-history-heading">

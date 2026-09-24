@@ -7,6 +7,7 @@ import RoleDashboard from './components/RoleDashboard';
 import DispatchDashboard from './components/dispatch/DispatchDashboard';
 import PickupTrackingView from './components/shared/PickupTrackingView';
 import PickupLogisticsMap from './components/shared/PickupLogisticsMap';
+import ImpactDashboard from './components/impact/ImpactDashboard';
 import { useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -53,7 +54,7 @@ export default function App() {
     const pathParts = pathname.split('/').filter(Boolean);
     const requestedRole = pathParts[0] || '';
     const isTrackingPath = pathParts.length === 3 && pathParts[1] === 'pickup';
-    const protectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) || isTrackingPath;
+    const protectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch', 'impact'].includes(requestedRole) || isTrackingPath;
 
     if (!user && protectedPath) {
       navigate('/login');
@@ -65,7 +66,7 @@ export default function App() {
       return;
     }
 
-    if (user && profile && ['donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) && requestedRole !== profile.role && !(requestedRole === 'dispatch' && profile.role === 'admin')) {
+    if (user && profile && ['donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) && requestedRole !== profile.role && requestedRole !== 'impact' && !(requestedRole === 'dispatch' && profile.role === 'admin')) {
       navigate(`/${profile.role}`);
     }
   }, [loading, user, profile, pathname]);
@@ -74,7 +75,7 @@ export default function App() {
   const requestedRole = pathParts[0] || '';
   const isTrackingPath = pathParts.length === 3 && pathParts[1] === 'pickup';
   const trackingPickupId = isTrackingPath ? pathParts[2] : null;
-  const isProtectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch'].includes(requestedRole) || isTrackingPath;
+  const isProtectedPath = ['dashboard', 'donor', 'shelter', 'driver', 'admin', 'dispatch', 'impact'].includes(requestedRole) || isTrackingPath;
 
   if (loading) {
     return <div className="auth-loading-state">Restoring your secure session...</div>;
@@ -83,6 +84,9 @@ export default function App() {
   if (isProtectedPath) {
     if (requestedRole === 'dispatch') {
       return <ProtectedRoute allowedRoles={['admin']} onNavigate={navigate}><DispatchDashboard user={user} onNavigate={navigate} onSignOut={async () => { await signOut(); navigate('/'); }} /></ProtectedRoute>;
+    }
+    if (requestedRole === 'impact') {
+      return <ProtectedRoute allowedRoles={['donor', 'shelter', 'driver', 'admin']} onNavigate={navigate}><main className="dashboard-shell"><header className="dashboard-topbar"><button className="brand-logo" onClick={() => navigate('/')} aria-label="Go to home"><div className="logo-icon-wrap"><svg className="brand-circles-svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="20" cy="24" r="14" fill="#2b60ec" fillOpacity="0.18" /><circle cx="28" cy="24" r="14" fill="#2b60ec" /><circle cx="20" cy="24" r="8" fill="#ffffff" /></svg></div><div className="brand-text"><span className="brand-title">surplus<span className="brand-accent">2</span>shelter</span><span className="brand-sub">DIRECT CARE LOGISTICS</span></div></button><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><button className="impact-tab-btn" onClick={() => navigate(`/${profile?.role || 'dashboard'}`)}>← Back to Dashboard</button><button className="btn-pill-secondary" onClick={async () => { await signOut(); navigate('/'); }}>Log out</button></div></header><ImpactDashboard onNavigate={navigate} /></main></ProtectedRoute>;
     }
     if (isTrackingPath) {
       return <ProtectedRoute allowedRoles={[requestedRole]} onNavigate={navigate}><PickupTrackingView pickupId={trackingPickupId} user={user} role={requestedRole} onBack={() => navigate(`/${requestedRole}`)} /><PickupLogisticsMap pickupId={trackingPickupId} /></ProtectedRoute>;

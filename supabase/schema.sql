@@ -335,7 +335,8 @@ create table if not exists public.impact (
   weight_rescued numeric check (weight_rescued is null or weight_rescued >= 0),
   meals_rescued numeric check (meals_rescued is null or meals_rescued >= 0),
   co2e_avoided numeric check (co2e_avoided is null or co2e_avoided >= 0),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint impact_donation_id_key unique (donation_id)
 );
 
 create table if not exists public.notification_events (
@@ -809,8 +810,21 @@ create policy "Relevant users can view impact"
   on public.impact for select to authenticated
   using (
     public.owns_donation(donation_id)
-    or public.is_profile_role('shelter')
     or public.is_profile_role('admin')
+    or exists (
+      select 1
+      from public.pickups pu
+      join public.drivers dr on dr.id = pu.driver_id
+      where pu.donation_id = public.impact.donation_id
+        and coalesce(dr.user_id, dr.profile_id) = auth.uid()
+    )
+    or exists (
+      select 1
+      from public.pickups pu
+      join public.shelters sh on sh.id = pu.shelter_id
+      where pu.donation_id = public.impact.donation_id
+        and sh.profile_id = auth.uid()
+    )
   );
 
 create policy "Admins can create impact records"
@@ -881,3 +895,101 @@ begin
   end if;
 end;
 $$;
+
+-- Phase 8: Automatic impact recording on delivery
+create or replace function public.handle_pickup_delivery_impact()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_donation record;
+  v_weight numeric := null;
+  v_meals numeric := null;
+  v_co2e numeric := null;
+  v_unit text;
+begin
+  if NEW.status = 'DELIVERED' and (TG_OP = 'INSERT' or OLD.status is distinct from 'DELIVERED') then
+    select * into v_donation
+    from public.donations
+    where id = NEW.donation_id;
+
+    if found then
+      v_unit := lower(trim(coalesce(v_donation.unit, '')));
+
+      if v_unit in ('kg', 'kgs', 'kilogram', 'kilograms') then
+        v_weight := v_donation.quantity;
+      elsif v_unit in ('g', 'gm', 'gram', 'grams') then
+        v_weight := round((v_donation.quantity / 1000.0)::numeric, 3);
+      elsif v_unit in ('lb', 'lbs', 'pound', 'pounds') then
+        v_weight := round((v_donation.quantity * 0.45359237)::numeric, 2);
+      elsif v_unit in ('oz', 'ounce', 'ounces') then
+        v_weight := round((v_donation.quantity * 0.0283495)::numeric, 3);
+      else
+        v_weight := null;
+      end if;
+
+      if v_unit in ('meal', 'meals', 'serving', 'servings', 'portion', 'portions') then
+        v_meals := v_donation.quantity;
+      elsif v_weight is not null and v_weight > 0 then
+        v_meals := round((v_weight / 0.42)::numeric, 1);
+      else
+        v_meals := null;
+      end if;
+
+      if v_weight is not null and v_weight > 0 then
+        v_co2e := round((v_weight * 2.5)::numeric, 2);
+      else
+        v_co2e := null;
+      end if;
+
+      insert into public.impact (donation_id, weight_rescued, meals_rescued, co2e_avoided, created_at)
+      values (NEW.donation_id, v_weight, v_meals, v_co2e, coalesce(NEW.delivered_at, now()))
+      on conflict (donation_id) do nothing;
+    end if;
+  end if;
+
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_pickup_delivery_impact on public.pickups;
+create trigger trg_pickup_delivery_impact
+  after insert or update on public.pickups
+  for each row
+  execute function public.handle_pickup_delivery_impact();
+
+create index if not exists impact_created_at_idx on public.impact (created_at desc);
+
+-- Phase 8: Public aggregate metrics function
+create or replace function public.get_public_impact_metrics()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_result json;
+begin
+  select json_build_object(
+    'total_deliveries', coalesce(count(distinct pu.id), 0),
+    'total_weight_kg', coalesce(sum(imp.weight_rescued), 0),
+    'total_meals', coalesce(sum(imp.meals_rescued), 0),
+    'total_co2e_avoided', coalesce(sum(imp.co2e_avoided), 0),
+    'shelters_served', coalesce(count(distinct pu.shelter_id), 0),
+    'active_donors', coalesce(count(distinct dn.donor_id), 0),
+    'active_drivers', coalesce(count(distinct pu.driver_id), 0)
+  )
+  into v_result
+  from public.pickups pu
+  join public.donations dn on dn.id = pu.donation_id
+  left join public.impact imp on imp.donation_id = dn.id
+  where pu.status = 'DELIVERED';
+
+  return coalesce(v_result, '{}'::json);
+end;
+$$;
+
+revoke all on function public.get_public_impact_metrics() from public;
+grant execute on function public.get_public_impact_metrics() to anon, authenticated;

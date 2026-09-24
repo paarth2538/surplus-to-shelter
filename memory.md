@@ -204,3 +204,25 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **Validation:** `npm run lint` passes (0 errors, 7 non-blocking warnings). `npm run build` succeeds in 418ms.
 - **Remaining work:** Apply migrations `004` and `005` in Supabase SQL editor and test end-to-end GPS position updates with an authenticated driver session.
 
+### 2026-09-25 - Phase 8 impact dashboard and verification
+
+- **Goal:** Turn real completed donation and delivery data into a trustworthy, role-based impact dashboard. All metrics come from verified `DELIVERED` pickups and the `public.impact` table — zero hardcoded numbers.
+- **Files changed:**
+  - `supabase/migrations/006_phase8_impact_verification.sql` — new migration for deduplication, trigger, backfill, RLS expansion, public metrics RPC, and Realtime publication.
+  - `supabase/schema.sql` — added `unique (donation_id)` constraint on `public.impact`, expanded impact RLS to include drivers and shelter-specific access, added `handle_pickup_delivery_impact()` trigger and `get_public_impact_metrics()` RPC.
+  - `src/hooks/useImpactData.js` — new hook fetching role-scoped impact data with time-range filtering (`Today`, `This week`, `This month`, `This year`, `All time`), Realtime subscriptions for live updates, and proper unit handling.
+  - `src/components/impact/ImpactDashboard.jsx` — new component with role-based views (Donor/Shelter/Driver/Admin), summary stat cards (Deliveries, Weight, Meals, CO₂e, Shelters Served, Active Donors/Drivers), SVG bar chart (deliveries over time), food category breakdown chart, unit breakdown chips, verified delivery log with chain visualization (`Donation → Driver → Shelter`), and graceful empty/loading/error states.
+  - `src/components/RoleDashboard.jsx` — added Impact toggle button in the dashboard topbar for all roles.
+  - `src/App.jsx` — added `/impact` as a protected route accessible by any authenticated role, with ImpactDashboard import and route handler.
+  - `src/App.css` — added all Impact Dashboard styles (stat cards, charts, verification log, time filters, responsive breakpoints).
+- **Database/Supabase changes:**
+  - `public.impact` now has a `unique (donation_id)` constraint preventing duplicate impact records.
+  - `trg_pickup_delivery_impact` trigger on `public.pickups` automatically creates an impact row when `status` transitions to `DELIVERED`, computing `weight_rescued` (kg normalization from kg/g/lbs/oz), `meals_rescued` (0.42 kg/meal or direct count for meal/serving units), and `co2e_avoided` (2.5 kg CO₂e per kg diverted). Uses `ON CONFLICT DO NOTHING` for idempotency.
+  - Backfill query populates impact rows for any existing `DELIVERED` pickups that lack records.
+  - RLS expanded: donors see their own, shelters see theirs via `pickups.shelter_id`, drivers see theirs via `pickups.driver_id → drivers.user_id`, admins see all.
+  - `get_public_impact_metrics()` RPC returns aggregate platform metrics (total deliveries, weight, meals, CO₂e, shelters served, active donors, active drivers).
+  - `public.impact` added to Supabase Realtime publication.
+- **Unit handling:** Weight units (`kg`, `lbs`, `g`, `oz`) are normalized to kg. Meal/serving units are counted directly. Non-convertible units (`boxes`, `crates`, `packets`) are shown in a separate breakdown — never blindly summed with kg.
+- **Validation:** `npm run lint` passes (0 errors, 9 pre-existing warnings). `npm run build` succeeds.
+- **External actions required:** Apply migration `006_phase8_impact_verification.sql` in the Supabase SQL editor. Test with authenticated accounts in each role.
+- **Scope:** Phase 8 only. No Phase 9 notifications, email, SMS, or push were implemented.

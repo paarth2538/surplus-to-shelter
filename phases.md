@@ -139,9 +139,17 @@ Driver -> Location updates -> Supabase -> Live tracking interface -> Shelter/Don
 - Donor, shelter, and platform-wide impact dashboards.
 - Verified delivery records and impact history.
 
-**Status:** ⏳ Planned
+**Status:** ✅ Implemented
 **Completion condition:** Impact metrics are calculated from real database records rather than hardcoded numbers.
 
+**Implementation details:**
+
+- Migration `supabase/migrations/006_phase8_impact_verification.sql` adds a `unique (donation_id)` constraint on `public.impact`, a database trigger (`trg_pickup_delivery_impact`) that automatically creates an impact record when a pickup transitions to `DELIVERED`, a backfill query for existing delivered pickups, expanded RLS policies for drivers and shelters, a `get_public_impact_metrics()` RPC for aggregate platform stats, and Realtime publication for the impact table.
+- `src/hooks/useImpactData.js` fetches role-scoped impact data with time-range filtering and Realtime subscriptions.
+- `src/components/impact/ImpactDashboard.jsx` displays role-based views with summary stat cards, SVG bar chart (deliveries over time), food category breakdown chart, unit breakdown chips, and a verified delivery log with chain visualization.
+- Accessible from every role dashboard via the Impact button in the topbar, or directly at `/impact`.
+- Weight units are normalized to kg; meal/serving units counted directly; non-convertible units shown separately.
+- Empty states, loading states, and error states are handled gracefully.
 ## Phase 9 - Notifications & Communication
 **Aim:** Keep donors, shelters, and drivers informed about important events.
 
@@ -221,12 +229,12 @@ User Signup/Login
 | --- | --- |
 | Phase 1 - Database & Supabase Foundation | ✅ Complete |
 | Phase 2 - Authentication & User Roles | ✅ Complete |
-| Phase 3 - Surplus Donation Management | 🔵 Current |
-| Phase 4 - Shelter Requests & Demand | ⏳ Planned |
-| Phase 5 - Smart Matching Engine | ⏳ Planned |
-| Phase 6 - Pickup, Driver & Dispatch | ⏳ Planned |
-| Phase 7 - Live Tracking & Logistics | ⏳ Planned |
-| Phase 8 - Impact Dashboard & Verification | ⏳ Planned |
+| Phase 3 - Surplus Donation Management | ✅ Complete |
+| Phase 4 - Shelter Requests & Demand | ✅ Complete |
+| Phase 5 - Smart Matching Engine | ✅ Complete |
+| Phase 6 - Pickup, Driver & Dispatch | ✅ Complete |
+| Phase 7 - Live Tracking & Logistics | ✅ Complete |
+| Phase 8 - Impact Dashboard & Verification | ✅ Complete |
 | Phase 9 - Notifications & Communication | ⏳ Planned |
 | Phase 10 - AI & Predictive Intelligence | ⏳ Planned |
 | Phase 11 - Security, Testing & Reliability | ⏳ Planned |
