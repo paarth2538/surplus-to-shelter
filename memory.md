@@ -170,3 +170,12 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - **External actions required:** Run the latest `supabase/schema.sql`, create/configure the public `pickup-proofs` Storage bucket, enable Realtime for `pickups`, `drivers`, and `notification_events`, and run the E2E script with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
 - **Remaining work:** Live 12-step Supabase test, browser/mobile keyboard and screen-reader audit, and production console verification require configured external Supabase credentials and test accounts.
 - **Commit:** `79e5259` (`Phase 6: Pickup, Driver & Dispatch System complete`).
+
+### 2026-09-24 - Driver workspace relationship fix
+
+- **Goal:** Fix the existing Driver Workspace error caused by querying nonexistent `drivers.user_id` without starting new Phase 6 work.
+- **Files changed:** `src/components/driver/DriverDashboard.jsx` and `memory.md`.
+- **Database/Supabase changes:** None; the existing `drivers.profile_id` relationship and `available` column are used.
+- **Validation:** No `drivers.user_id` or driver-component `user_id` references remain; `npm run lint` and `npm run build` pass with existing non-blocking warnings.
+- **External actions required:** Test with an authenticated driver account and confirm the owned `public.drivers` row and availability update in Supabase.
+- **Remaining work:** Live driver-account verification only. No dispatch, assignment, tracking, maps, or notification changes were made.

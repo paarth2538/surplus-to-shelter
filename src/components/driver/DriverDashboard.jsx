@@ -72,13 +72,15 @@ export default function DriverDashboard({ user, profile }) {
     setError('');
     const { data: driverRecord, error: driverError } = await supabase
       .from('drivers')
-      .select('id, user_id, profile_id, vehicle_type, capacity_kg, current_lat, current_lng, is_available, available, status')
-      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
+      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .eq('profile_id', user.id)
       .maybeSingle();
 
     if (driverError) throw driverError;
     if (!driverRecord) {
-      throw new Error('No driver profile is linked to this account yet.');
+      setError('Driver profile not set up yet.');
+      setLoading(false);
+      return null;
     }
 
     setDriver(driverRecord);
@@ -134,12 +136,13 @@ export default function DriverDashboard({ user, profile }) {
     if (!supabase || !driver || isSavingAvailability || hasActivePickup) return;
     setIsSavingAvailability(true);
     setError('');
-    const nextAvailable = !(driver.is_available ?? driver.available);
+    const nextAvailable = !driver.available;
     const { data, error: updateError } = await supabase
       .from('drivers')
-      .update({ is_available: nextAvailable, available: nextAvailable, status: nextAvailable ? 'AVAILABLE' : 'OFFLINE' })
+      .update({ available: nextAvailable })
       .eq('id', driver.id)
-      .select('id, user_id, profile_id, vehicle_type, capacity_kg, current_lat, current_lng, is_available, available, status')
+      .eq('profile_id', driver.profile_id)
+      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
       .single();
 
     if (updateError) setError(updateError.message || 'Availability could not be updated.');
@@ -176,7 +179,7 @@ export default function DriverDashboard({ user, profile }) {
     return <section className="driver-workspace" aria-live="polite"><div className="driver-skeleton-heading"><span className="driver-skeleton skeleton-kicker" /><span className="driver-skeleton skeleton-title" /><span className="driver-skeleton skeleton-copy" /></div><div className="driver-stats-strip driver-stats-skeleton" aria-label="Loading quick stats">{[1, 2, 3, 4].map((item) => <div key={item}><span className="driver-skeleton skeleton-label" /><strong className="driver-skeleton skeleton-value" /></div>)}</div><div className="driver-skeleton driver-skeleton-card" /></section>;
   }
 
-  const isAvailable = Boolean(driver?.is_available ?? driver?.available);
+  const isAvailable = Boolean(driver?.available);
 
   return (
     <section className="driver-workspace">
