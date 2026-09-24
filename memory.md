@@ -36,7 +36,7 @@ This file is the persistent handoff log for the Surplus2Shelter project. Update 
 
 ## Database State
 
-The latest known Supabase production inspection showed no application tables or views in the public schema. The complete schema is prepared locally in `supabase/schema.sql` but has not been confirmed as executed successfully in Supabase.
+An earlier Supabase production inspection showed no application tables or views in the public schema. The latest task context states that the Phase 1 schema is now deployed; this was not independently re-verified during the Phase 4 implementation.
 
 Expected application tables:
 
@@ -126,6 +126,16 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - Updated `src/App.css` for the donation form and responsive scrollable modal behavior.
 - Verified the local donation form opens from the existing UI. Production database insertion was not completed in this task because it requires an authenticated donor session and a deployed Supabase schema.
 - Phase 3 remains current and incomplete until a real donation row is confirmed in Supabase and after refresh/login in the donor workspace.
+
+### 2026-09-24 - Phase 4 shelter requests and demand management started
+
+- Added `public.shelter_requests` to `supabase/schema.sql` and created the safe rerunnable migration `supabase/migrations/002_shelter_requests.sql`.
+- Added request indexes, status/urgency constraints, shelter ownership RLS, and administrative-only shelter verification protection.
+- Added `src/components/ShelterWorkspace.jsx` for real shelter profile, capacity, preferences, urgency, request creation, history, open-request editing, and cancellation.
+- Updated `src/components/RoleDashboard.jsx`, `src/App.jsx`, and `src/App.css` to expose the shelter workflow while preserving donor behavior.
+- No matching, dispatch, routing, realtime tracking, notifications, AI, or impact calculations were added.
+- `npm run lint` and `npm run build` pass with existing non-blocking warnings.
+- A real shelter profile/request was not created in Supabase during this task; the migration must be applied and tested with an authenticated shelter account.
 
 ## Future Task Entry Template
 

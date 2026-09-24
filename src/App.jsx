@@ -236,7 +236,11 @@ export default function App() {
             <button className="btn-pill-primary" onClick={() => setIsDonationModalOpen(true)}>
               Donate Surplus
             </button>
-            <button className="btn-pill-secondary" onClick={() => setIsModalOpen(true)}>
+            <button className="btn-pill-secondary" onClick={() => {
+              if (profile?.role === 'shelter') navigate('/shelter');
+                else if (user) setIsModalOpen(true);
+              else { setIsAuthModalOpen(true); navigate('/login'); }
+            }}>
               Request Supplies
             </button>
             {user ? (

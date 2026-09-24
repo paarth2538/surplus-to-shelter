@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import ShelterWorkspace from './ShelterWorkspace';
 
 const dashboardCopy = {
   donor: {
@@ -133,6 +134,8 @@ export default function RoleDashboard({ onNavigate, onSignOut, onDonate, donatio
               ))}
             </div>
           </section>
+        ) : profile.role === 'shelter' ? (
+          <ShelterWorkspace />
         ) : (
           <p className="dashboard-phase-note">Phase 2 authentication is active. Operational workflows will be added in later phases.</p>
         )}

@@ -1918,6 +1918,80 @@
   font-weight: 700;
 }
 
+.shelter-workspace {
+  display: grid;
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.workspace-section {
+  padding-top: 28px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.workspace-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.workspace-section-heading .kicker-badge {
+  margin-bottom: 10px;
+}
+
+.workspace-section-heading h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-headline);
+  font-size: 26px;
+}
+
+.workspace-form {
+  display: grid;
+  gap: 16px;
+}
+
+.workspace-meta {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 13px;
+}
+
+.capacity-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-container-low);
+}
+
+.capacity-summary strong {
+  color: var(--text-main);
+  font-family: var(--font-headline);
+  font-size: 20px;
+}
+
+.capacity-summary span {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.workspace-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.workspace-card-actions .btn-modal-cancel {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .hero-container {
