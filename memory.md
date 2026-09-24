@@ -137,6 +137,18 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - `npm run lint` and `npm run build` pass with existing non-blocking warnings.
 - A real shelter profile/request was not created in Supabase during this task; the migration must be applied and tested with an authenticated shelter account.
 
+### 2026-09-24 - Phase 5 smart matching engine started
+
+- Confirmed existing columns: donations use `food_type`, `quantity`, `unit`, `expiry_time`, `latitude`, `longitude`, and `status`; shelter requests use `food_type`, `item_name`, `quantity`, `unit`, `urgency_level`, `needed_by`, and `status`.
+- Confirmed no existing matches table or matching helper was present.
+- Added `supabase/migrations/003_matching_engine.sql` with `public.matches`, indexes, RLS, Haversine distance, compatibility scoring, secure matching RPCs, accept/dismiss response RPC, and insert triggers for posted donations/open requests.
+- Matching score weights are category compatibility 40, quantity coverage 25, proximity 20, expiry window 10, and urgency 5, normalized to 0-100.
+- Added `src/lib/matching.js` and `src/components/MatchList.jsx` for manual Find Matches, ranked match metrics, and accept/dismiss actions on donor and shelter workspaces.
+- Updated `src/components/RoleDashboard.jsx`, `src/components/ShelterWorkspace.jsx`, and `src/App.css` only for match rendering and controls.
+- No driver dispatch, live tracking, maps, notifications, AI, or predictive logic was added.
+- `npm run lint` and `npm run build` pass with non-blocking existing warnings.
+- The Phase 5 migration has not been executed in Supabase and no real match row has been independently verified yet.
+
 ## Future Task Entry Template
 
 ### YYYY-MM-DD - Short task title

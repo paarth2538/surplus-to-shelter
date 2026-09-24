@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import MatchList from './MatchList';
 
 const emptyProfile = {
   organizationName: '',
@@ -340,6 +341,7 @@ export default function ShelterWorkspace() {
             <article className="donation-history-card" key={request.id}>
               <div className="donation-card-heading"><div><h3>{request.item_name}</h3><span>{request.food_type} · {request.quantity} {request.unit}</span></div><span className="donation-status-pill">{request.status.toUpperCase()}</span></div>
               <div className="donation-card-grid"><span><strong>Urgency</strong>{request.urgency_level.toUpperCase()}</span><span><strong>Needed by</strong>{formatDate(request.needed_by)}</span><span><strong>Created</strong>{formatDate(request.created_at)}</span><span><strong>Description</strong>{request.description || 'No description'}</span></div>
+              <MatchList resourceType="request" resourceId={request.id} />
               {request.status === 'open' ? <div className="workspace-card-actions"><button className="btn-pill-secondary" onClick={() => openRequestModal(request)}>Edit</button><button className="btn-modal-cancel" onClick={() => cancelRequest(request)}>Cancel request</button></div> : null}
             </article>
           ))}

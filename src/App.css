@@ -1992,6 +1992,125 @@
   font-size: 13px;
 }
 
+.match-list-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.match-list-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.match-list-heading .kicker-badge {
+  margin-bottom: 6px;
+  font-size: 10px;
+}
+
+.match-list-heading h4 {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-headline);
+  font-size: 16px;
+}
+
+.match-muted {
+  margin: 0;
+  color: var(--text-subtle);
+  font-size: 12px;
+}
+
+.match-success {
+  margin: 0 0 10px;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.match-list {
+  display: grid;
+  gap: 10px;
+}
+
+.match-card {
+  padding: 13px;
+  border: 1px solid var(--outline-light);
+  border-radius: var(--radius-sm);
+  background: var(--surface-container-low);
+}
+
+.match-card-topline,
+.match-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.match-card-topline > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.match-card-topline strong {
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-card-topline span:not(.match-status-pill) {
+  color: var(--primary-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.match-status-pill {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.match-status-proposed { background: #eff6ff; color: #1d4ed8; }
+.match-status-accepted { background: var(--secondary-light); color: #047857; }
+.match-status-dismissed { background: #f1f5f9; color: var(--text-subtle); }
+
+.match-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--text-subtle);
+  font-size: 11px;
+}
+
+.match-metrics strong {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.match-actions {
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.match-actions .btn-pill-primary,
+.match-actions .btn-modal-cancel {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
   .hero-container {

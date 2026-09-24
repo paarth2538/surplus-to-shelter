@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import ShelterWorkspace from './ShelterWorkspace';
+import MatchList from './MatchList';
 
 const dashboardCopy = {
   donor: {
@@ -130,6 +131,7 @@ export default function RoleDashboard({ onNavigate, onSignOut, onDonate, donatio
                     <span><strong>Pickup</strong> {donation.pickup_address}</span>
                     <span><strong>Posted</strong> {formatDate(donation.created_at)}</span>
                   </div>
+                  <MatchList resourceType="donation" resourceId={donation.id} />
                 </article>
               ))}
             </div>
