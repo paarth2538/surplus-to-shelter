@@ -1,3 +1,260 @@
+# Surplus2Shelter Development Roadmap
+
+**Project:** Surplus2Shelter - Direct Care Logistics Platform
+## Current Status
+
+| Phase | Status |
+| --- | --- |
+| Phase 1 - Database & Supabase Foundation | ✅ Complete |
+| Phase 2 - Authentication & User Roles | ✅ Complete |
+| Phase 3 - Surplus Donation Management | 🔵 Current |
+
+## Phase 1 - Database & Supabase Foundation
+**Aim:** Establish the complete backend foundation using Supabase.
+
+**Responsibilities:**
+- Create the Supabase project.
+- Design the database schema.
+- Create application tables and relationships.
+- Configure foreign keys and Row Level Security (RLS).
+- Configure database functions and triggers.
+- Connect the frontend to Supabase.
+- Verify database connectivity.
+
+**Key database areas:** `profiles`, `donations`, `shelters`, `drivers`, `pickups`, `impact`, and `pickup_requests`.
+**Status:** ✅ Complete
+
+**Completion condition:** The frontend communicates with Supabase and the production database schema is deployed.
+## Phase 2 - Authentication & User Roles
+
+**Aim:** Implement real user authentication and role-based access.
+**Supported roles:** Donor, Shelter, Driver.
+
+**Responsibilities:**
+- User signup, login, and logout.
+- Session persistence and Supabase Auth integration.
+- Profile creation and role detection.
+- Role-based dashboard routing and protected routes.
+- Secure authentication error handling.
+
+**Expected flow:**
+```text
+Signup -> Supabase Auth -> auth.users -> profiles -> Role detection -> Role-specific dashboard
+```
+
+**Status:** ✅ Complete
+**Completion condition:** A real user can create an account, log in, log out, and access the correct role-based workspace.
+
+## Phase 3 - Surplus Donation Management
+**Aim:** Allow donors to post real surplus goods and store them in Supabase.
+
+**Responsibilities:**
+- Build the Donate Surplus form.
+- Capture food/item name, food type, description, quantity, unit, expiry date/time, pickup address, and location information.
+- Create real donation records in `public.donations`.
+- Provide donor donation history and donation status.
+- Add validation, loading states, and duplicate submission protection.
+- Secure donor ownership using the authenticated user ID.
+
+**Expected flow:**
+```text
+Donor -> Donate Surplus -> Donation Form -> Submit -> Supabase donations -> Success -> My Donations
+```
+
+**Status:** 🔵 Current
+**Completion condition:** A donor can submit a real donation from the frontend and the row appears in Supabase `donations`.
+
+## Phase 4 - Shelter Requests & Demand Management
+**Aim:** Allow shelters to communicate their current needs and demand.
+
+**Responsibilities:**
+- Shelter profile and workspace.
+- Create supply requests with item type, quantity, urgency, dietary/category requirements, capacity, and location.
+- Track request status and shelter request history.
+- Integrate requests with Supabase.
+
+**Expected flow:**
+```text
+Shelter -> Request Supplies -> Demand Form -> Supabase -> Shelter Request -> Available to matching system
+```
+
+**Status:** ⏳ Planned
+**Completion condition:** Shelters can create and manage genuine supply requests stored in Supabase.
+
+## Phase 5 - Smart Matching Engine
+**Aim:** Automatically match donor surplus with suitable shelter demand.
+
+**Matching factors:** Location/distance, food type, quantity, expiry window, shelter demand, urgency, availability, and capacity.
+**Expected flow:**
+
+```text
+Donation + Shelter Request -> Matching Engine -> Compatibility calculation -> Potential match -> Match record
+```
+
+**Status:** ⏳ Planned
+**Completion condition:** The system identifies suitable donor-to-shelter matches using real database data.
+
+## Phase 6 - Pickup, Driver & Dispatch System
+**Aim:** Turn successful matches into operational pickup and delivery jobs.
+
+**Responsibilities:**
+- Driver workspace and availability.
+- Pickup and delivery assignment.
+- Accept/reject assignment.
+- Pickup, transit, and delivery status.
+- Dispatch records and assignment history.
+
+**Expected status flow:**
+```text
+POSTED -> MATCHED -> ASSIGNED -> PICKUP -> IN TRANSIT -> DELIVERED
+```
+
+**Status:** ⏳ Planned
+**Completion condition:** A matched donation can be assigned to a driver and tracked through delivery.
+
+## Phase 7 - Live Tracking & Logistics
+**Aim:** Provide real-time visibility into active deliveries.
+
+**Responsibilities:**
+- GPS/location integration.
+- Driver location, pickup location, destination, route information, and ETA.
+- Active delivery status and live dispatch dashboard.
+- Location updates stored and displayed through Supabase.
+
+**Expected flow:**
+```text
+Driver -> Location updates -> Supabase -> Live tracking interface -> Shelter/Donor visibility
+```
+
+**Status:** ⏳ Planned
+**Completion condition:** An active delivery displays meaningful live location and status information.
+
+## Phase 8 - Impact Dashboard & Verification
+**Aim:** Measure and display the real-world impact generated by the platform.
+
+**Metrics may include:** Food rescued, total donations, deliveries completed, shelters served, beneficiaries reached, successful pickups, successful deliveries, waste diverted, and impact history.
+**Responsibilities:**
+
+- Impact calculations.
+- Donor, shelter, and platform-wide impact dashboards.
+- Verified delivery records and impact history.
+
+**Status:** ⏳ Planned
+**Completion condition:** Impact metrics are calculated from real database records rather than hardcoded numbers.
+
+## Phase 9 - Notifications & Communication
+**Aim:** Keep donors, shelters, and drivers informed about important events.
+
+**Notifications may include:** Donation received, donation matched, shelter request created, driver assigned, pickup approaching, pickup completed, delivery in transit, delivery completed, urgent shelter demand, and expiring donation.
+**Responsibilities:**
+
+- In-app notifications.
+- Notification status and read/unread state.
+- Relevant user targeting.
+- Optional email or Telegram notifications where appropriate.
+
+**Status:** ⏳ Planned
+**Completion condition:** Important workflow events generate useful notifications for the appropriate users.
+
+## Phase 10 - AI & Predictive Intelligence
+**Aim:** Add intelligent capabilities that improve surplus allocation and logistics.
+
+**Potential features:** Demand prediction, surplus forecasting, predictive inventory, expiry-risk prediction, smart donor recommendations, shelter demand forecasting, intelligent matching improvements, logistics recommendations, and anomaly detection.
+AI must use real project data where appropriate and must improve an existing workflow rather than being added only for appearance.
+
+**Status:** ⏳ Planned
+**Completion condition:** At least one meaningful AI or predictive feature improves an existing platform workflow.
+
+## Phase 11 - Security, Testing & Reliability
+**Aim:** Make the platform secure, stable, and production-ready.
+
+**Responsibilities:**
+- Authentication, authorization, RLS, role-permission, and database integrity testing.
+- Input validation, error handling, API/security review, and edge-case testing.
+- Duplicate request prevention and performance testing.
+- Mobile/responsive testing and browser compatibility.
+- Data privacy review.
+
+**Security requirements:**
+- Never expose Supabase service-role keys.
+- Keep RLS enabled.
+- Validate ownership using authenticated user IDs.
+- Prevent unauthorized role escalation.
+- Protect protected routes.
+- Validate all user inputs.
+
+**Status:** ⏳ Planned
+**Completion condition:** Core workflows pass security, permission, reliability, and edge-case testing.
+
+## Phase 12 - Production Deployment & Hackathon Demo
+**Aim:** Prepare the complete Surplus2Shelter platform for deployment and final presentation.
+
+**Responsibilities:**
+- Production deployment and environment variables.
+- Production Supabase configuration and database migration verification.
+- Performance optimization, UI polish, responsive verification, and error-state polish.
+- Demo accounts/data where appropriate and end-to-end demo testing.
+- Presentation flow, architecture diagram, technical documentation, README, and final walkthrough.
+
+**Final demo flow:**
+```text
+User Signup/Login
+	-> Donor posts surplus
+	-> Shelter requests supplies
+	-> Smart matching
+	-> Driver assignment
+	-> Pickup
+	-> Live tracking
+	-> Delivery
+	-> Impact recorded
+	-> Notifications
+	-> Impact dashboard
+```
+
+**Status:** ⏳ Planned
+
+**Completion condition:** The complete end-to-end workflow can be demonstrated reliably from signup through verified delivery and impact.
+
+## Overall Project Status
+
+| Phase | Status |
+| --- | --- |
+| Phase 1 - Database & Supabase Foundation | ✅ Complete |
+| Phase 2 - Authentication & User Roles | ✅ Complete |
+| Phase 3 - Surplus Donation Management | 🔵 Current |
+| Phase 4 - Shelter Requests & Demand | ⏳ Planned |
+| Phase 5 - Smart Matching Engine | ⏳ Planned |
+| Phase 6 - Pickup, Driver & Dispatch | ⏳ Planned |
+| Phase 7 - Live Tracking & Logistics | ⏳ Planned |
+| Phase 8 - Impact Dashboard & Verification | ⏳ Planned |
+| Phase 9 - Notifications & Communication | ⏳ Planned |
+| Phase 10 - AI & Predictive Intelligence | ⏳ Planned |
+| Phase 11 - Security, Testing & Reliability | ⏳ Planned |
+| Phase 12 - Production & Hackathon Demo | ⏳ Planned |
+
+## Development Rule
+
+Complete and verify each phase before moving to the next.
+
+For every phase:
+
+```text
+Frontend -> Backend/Supabase -> Database -> Security/RLS -> Real workflow test -> Phase completion
+```
+
+Do not mark a phase complete based only on frontend appearance. A phase is complete only when its core workflow works with real Supabase data.
+
+## Current Priority
+
+**Phase 3 - Surplus Donation Management**
+
+The immediate objective is:
+
+```text
+Donor -> Donate Surplus -> Submit real donation -> Supabase donations -> Display donation in donor workspace
+```
+
+Do not start Phase 4 until Phase 3 has been tested successfully with a real database record.
 # Development Phases
 
 ## Phase 1: Experience Baseline
