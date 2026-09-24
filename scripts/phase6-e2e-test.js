@@ -80,25 +80,35 @@ async function main() {
   });
 
   await step('Create shelter request and verify matching prerequisites', async () => {
-    const { data, error } = await adminClient.from('pickup_requests').insert({ business_name: 'Phase 6 Shelter Request', category: 'Fresh Produce', crates: 12, address: '1 Test Way', status: 'requested' }).select('id, status').single();
+    const { data, error } = await adminClient.from('shelter_requests').insert({ shelter_id: ids.shelterRecord, food_type: 'Fresh Produce', item_name: 'Phase 6 Test Produce', quantity: 12, unit: 'crates', urgency_level: 'high', needed_by: new Date(Date.now() + 86400000).toISOString(), status: 'open' }).select('id, status').single();
     if (error) throw error;
     ids.request = data.id;
-    assert(data.status === 'requested', 'Current schema represents requests as requested, not OPEN.');
+    assert(data.status === 'open', 'Shelter request was not OPEN.');
   });
 
   await step('Create MATCH record', async () => {
-    const { data, error } = await adminClient.from('matches').insert({ donation_id: ids.donation, shelter_id: ids.shelterRecord, status: 'ACCEPTED', score: 1 }).select('id, status').single();
+    const { data, error } = await adminClient.from('matches').insert({ donation_id: ids.donation, shelter_request_id: ids.request, match_score: 100, distance_km: 0, quantity_coverage: 100, urgency_level: 'high', expiry_warning: 'safe', status: 'proposed' }).select('id, status').single();
     if (error) throw error;
     ids.match = data.id;
-    assert(data.status === 'ACCEPTED', 'Match was not created.');
+    assert(data.status === 'proposed', 'Match was not created.');
+  });
+
+  const shelterSession = await step('Sign in shelter test session', () => sessionClient('shelter'));
+  await step('Accept match and create pickup', async () => {
+    const { data, error } = await shelterSession.client.rpc('respond_to_match', { p_match_id: ids.match, p_status: 'accepted' });
+    if (error) throw error;
+    assert(data?.status === 'accepted', 'Match was not accepted.');
+    const { data: pickup, error: pickupError } = await adminClient.from('pickups').select('id, status').eq('match_id', ids.match).single();
+    if (pickupError) throw pickupError;
+    ids.pickup = pickup.id;
+    assert(pickup.status === 'ASSIGNED', 'Pickup was not created in ASSIGNED state.');
   });
 
   const adminSession = await step('Sign in admin test session', () => sessionClient('admin'));
   await step('Assign available driver through admin RPC', async () => {
     const { data, error } = await adminSession.client.rpc('assign_driver_to_match', { p_match_id: ids.match, p_driver_id: ids.driverRecord, p_scheduled_at: new Date(Date.now() + 3600000).toISOString() });
     if (error) throw error;
-    ids.pickup = data;
-    assert(ids.pickup, 'Assignment RPC did not return a pickup id.');
+    assert(data === ids.pickup, 'Assignment RPC returned an unexpected pickup id.');
   });
 
   const driverSession = await step('Sign in driver test session', () => sessionClient('driver'));
@@ -116,6 +126,9 @@ async function main() {
     if (queryError) throw queryError;
     assert(data.status === 'DELIVERED', 'Pickup did not reach DELIVERED.');
     assert(data.proof_photo_url && data.delivery_proof_photo_url, 'Proof URLs were not persisted.');
+    const { data: donation, error: donationError } = await adminClient.from('donations').select('status').eq('id', ids.donation).single();
+    if (donationError) throw donationError;
+    assert(donation.status === 'delivered', 'Donation did not synchronize to DELIVERED.');
   });
 
   await step('Verify donor, shelter, driver notifications', async () => {
@@ -134,6 +147,7 @@ async function main() {
       await adminClient.from('notification_events').delete().eq('data->>pickup_id', ids.pickup);
       await adminClient.from('pickups').delete().eq('id', ids.pickup);
       await adminClient.from('matches').delete().eq('id', ids.match);
+      await adminClient.from('shelter_requests').delete().eq('id', ids.request);
       await adminClient.from('donations').delete().eq('id', ids.donation);
       await adminClient.from('shelters').delete().eq('id', ids.shelterRecord);
       for (const role of Object.keys(users)) await adminClient.auth.admin.deleteUser(ids[role]);

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import useDriverPickups from '../../hooks/useDriverPickups';
 import PickupFlow from './PickupFlow';
+import LazyLiveMapView from '../dispatch/LazyLiveMapView';
 
 function formatDate(value, includeTime = true) {
   if (!value) return 'Time to be confirmed';
@@ -25,7 +26,7 @@ function statusLabel(status) {
 }
 
 function pickupTitle(pickup) {
-  return pickup.donations?.food_name || pickup.donor_id ? 'Surplus food pickup' : 'Community pickup';
+  return pickup.donations?.food_name || pickup.donations?.donor_id ? 'Surplus food pickup' : 'Community pickup';
 }
 
 function actionLabel(status) {
@@ -80,7 +81,7 @@ export default function DriverDashboard({ user, profile }) {
     setError('');
     const { data: driverRecord, error: driverError } = await supabase
       .from('drivers')
-      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .select('id, name, phone, profile_id, vehicle_type, available, is_available, status, current_lat, current_lng, last_location_update, latitude, longitude')
       .eq('profile_id', user.id)
       .maybeSingle();
 
@@ -140,8 +141,8 @@ export default function DriverDashboard({ user, profile }) {
   const { currentPickup, upcomingPickups, pickups, impactRecords, loading: pickupsLoading, error: pickupsError, refetch } = pickupWorkspace;
   const hasActivePickup = pickups.some((pickup) => ['PICKUP', 'IN_TRANSIT'].includes(pickup.status));
   const deliveredCount = pickups.filter((pickup) => pickup.status === 'DELIVERED').length;
-  const todayPickups = pickups.filter((pickup) => pickup.scheduled_at && isSameDay(pickup.scheduled_at)).length;
-  const weeklyPickups = pickups.filter((pickup) => pickup.scheduled_at && isThisWeek(pickup.scheduled_at)).length;
+  const todayPickups = pickups.filter((pickup) => pickup.pickup_time && isSameDay(pickup.pickup_time)).length;
+  const weeklyPickups = pickups.filter((pickup) => pickup.pickup_time && isThisWeek(pickup.pickup_time)).length;
   const rescuedWeight = impactRecords.reduce((total, impact) => total + Number(impact.weight_rescued || 0), 0);
   const workspaceError = error || pickupsError;
 
@@ -152,10 +153,10 @@ export default function DriverDashboard({ user, profile }) {
     const nextAvailable = !driver.available;
     const { data, error: updateError } = await supabase
       .from('drivers')
-      .update({ available: nextAvailable })
+      .update({ available: nextAvailable, is_available: nextAvailable, status: nextAvailable ? 'AVAILABLE' : 'OFFLINE' })
       .eq('id', driver.id)
       .eq('profile_id', driver.profile_id)
-      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .select('id, name, phone, profile_id, vehicle_type, available, is_available, status, current_lat, current_lng, last_location_update, latitude, longitude')
       .single();
 
     if (updateError) setError(updateError.message || 'Availability could not be updated.');
@@ -190,7 +191,7 @@ export default function DriverDashboard({ user, profile }) {
 
     const { data: existingDriver, error: existingError } = await supabase
       .from('drivers')
-      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .select('id, name, phone, profile_id, vehicle_type, available, is_available, status, current_lat, current_lng, last_location_update, latitude, longitude')
       .eq('profile_id', authenticatedUser.id)
       .maybeSingle();
 
@@ -214,9 +215,11 @@ export default function DriverDashboard({ user, profile }) {
         name: setupForm.name.trim(),
         phone: setupForm.phone.trim(),
         vehicle_type: setupForm.vehicleType.trim(),
-        available: false
+        available: false,
+        is_available: false,
+        status: 'OFFLINE'
       })
-      .select('id, name, phone, profile_id, vehicle_type, available, latitude, longitude')
+      .select('id, name, phone, profile_id, vehicle_type, available, is_available, status, current_lat, current_lng, last_location_update, latitude, longitude')
       .single();
 
     if (insertError) {
@@ -325,7 +328,7 @@ export default function DriverDashboard({ user, profile }) {
           </div>
           {currentPickup ? (
             <article className="current-pickup-card">
-              <div className="pickup-card-topline"><span className={`pickup-status pickup-status-${currentPickup.status.toLowerCase()}`}>{statusLabel(currentPickup.status)}</span><span>{formatDate(currentPickup.scheduled_at)}</span></div>
+              <div className="pickup-card-topline"><span className={`pickup-status pickup-status-${currentPickup.status.toLowerCase()}`}>{statusLabel(currentPickup.status)}</span><span>{formatDate(currentPickup.pickup_time)}</span></div>
               <h3>{pickupTitle(currentPickup)}</h3>
               <div className="pickup-parties"><span><b>Donor</b>{currentPickup.donor?.name || 'Donor partner'}</span><span><b>Shelter</b>{currentPickup.shelters?.organization_name || 'Shelter destination pending'}</span></div>
               <div className="route-pair"><div><span className="route-label">Collect from</span><strong>{currentPickup.donations?.pickup_address || 'Donor address pending'}</strong></div><span className="route-arrow">→</span><div><span className="route-label">Deliver to</span><strong>{currentPickup.shelters?.address || currentPickup.shelters?.organization_name || 'Shelter address pending'}</strong></div></div>
@@ -333,9 +336,11 @@ export default function DriverDashboard({ user, profile }) {
             </article>
           ) : <div className="driver-empty-state"><strong>No active pickup right now.</strong><span>Stay available and new assignments will appear here in real time.</span></div>}
 
+          {currentPickup ? <LazyLiveMapView pickups={[currentPickup]} /> : null}
+
           <div className="driver-section-heading upcoming-heading"><div><span className="section-eyebrow">QUEUE</span><h2>Upcoming pickups</h2></div><span className="queue-count">{upcomingPickups.length} scheduled</span></div>
           <div className="upcoming-pickups-list">
-            {upcomingPickups.length ? upcomingPickups.map((pickup) => <article className="upcoming-pickup-row" key={pickup.id}><div className="schedule-marker"><strong>{new Date(pickup.scheduled_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong><span>{formatDate(pickup.scheduled_at, false).split(',')[0]}</span></div><div className="upcoming-pickup-copy"><strong>{pickup.donor?.name || 'Donor partner'} <span className="route-inline-arrow">→</span> {pickup.shelters?.organization_name || 'Shelter destination pending'}</strong><span>{pickup.donations?.food_name || 'Surplus donation'} · {pickup.donations?.quantity || '—'} {pickup.donations?.unit || 'units'}</span></div><span className={`pickup-status pickup-status-${pickup.status.toLowerCase()}`}>{statusLabel(pickup.status)}</span><button className="upcoming-view-button" onClick={() => setDetailsPickup(pickup)}>View</button></article>) : <div className="driver-empty-state compact"><span>No upcoming pickups. Stay available for dispatch!</span></div>}
+            {upcomingPickups.length ? upcomingPickups.map((pickup) => <article className="upcoming-pickup-row" key={pickup.id}><div className="schedule-marker"><strong>{new Date(pickup.pickup_time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</strong><span>{formatDate(pickup.pickup_time, false).split(',')[0]}</span></div><div className="upcoming-pickup-copy"><strong>{pickup.donor?.name || 'Donor partner'} <span className="route-inline-arrow">→</span> {pickup.shelters?.organization_name || 'Shelter destination pending'}</strong><span>{pickup.donations?.food_name || 'Surplus donation'} · {pickup.donations?.quantity || '—'} {pickup.donations?.unit || 'units'}</span></div><span className={`pickup-status pickup-status-${pickup.status.toLowerCase()}`}>{statusLabel(pickup.status)}</span><button className="upcoming-view-button" onClick={() => setDetailsPickup(pickup)}>View</button></article>) : <div className="driver-empty-state compact"><span>No upcoming pickups. Stay available for dispatch!</span></div>}
           </div>
         </div>
 
@@ -355,7 +360,7 @@ export default function DriverDashboard({ user, profile }) {
             <button className="driver-modal-close" onClick={() => setDetailsPickup(null)} aria-label="Close pickup details">×</button>
             <span className={`pickup-status pickup-status-${detailsPickup.status.toLowerCase()}`}>{statusLabel(detailsPickup.status)}</span>
             <h2 id="pickup-details-title">{pickupTitle(detailsPickup)}</h2>
-            <div className="pickup-detail-grid"><div><span>Donor</span><strong>{detailsPickup.donor?.name || 'Donor partner'}</strong><small>{detailsPickup.donor?.phone || detailsPickup.donor?.email || 'Contact details unavailable'}</small></div><div><span>Shelter</span><strong>{detailsPickup.shelters?.organization_name || 'Shelter destination pending'}</strong><small>{detailsPickup.shelters?.phone || 'Contact details unavailable'}</small></div><div><span>Cargo</span><strong>{detailsPickup.donations?.quantity || '—'} {detailsPickup.donations?.unit || 'units'}</strong><small>{detailsPickup.donations?.food_name || 'Surplus goods'}</small></div><div><span>Scheduled</span><strong>{formatDate(detailsPickup.scheduled_at)}</strong><small>{detailsPickup.notes || 'No additional notes'}</small></div></div>
+            <div className="pickup-detail-grid"><div><span>Donor</span><strong>{detailsPickup.donor?.name || 'Donor partner'}</strong><small>{detailsPickup.donor?.phone || detailsPickup.donor?.email || 'Contact details unavailable'}</small></div><div><span>Shelter</span><strong>{detailsPickup.shelters?.organization_name || 'Shelter destination pending'}</strong><small>{detailsPickup.shelters?.phone || 'Contact details unavailable'}</small></div><div><span>Cargo</span><strong>{detailsPickup.donations?.quantity || '—'} {detailsPickup.donations?.unit || 'units'}</strong><small>{detailsPickup.donations?.food_name || 'Surplus goods'}</small></div><div><span>Scheduled</span><strong>{formatDate(detailsPickup.pickup_time)}</strong><small>{detailsPickup.notes || 'No additional notes'}</small></div></div>
             <div className="pickup-address-list"><a href={navigationUrl(detailsPickup.donations?.pickup_address)} target="_blank" rel="noreferrer"><span>Pickup address</span><strong>{detailsPickup.donations?.pickup_address || 'Address pending'} ↗</strong></a><a href={navigationUrl(detailsPickup.shelters?.address)} target="_blank" rel="noreferrer"><span>Delivery address</span><strong>{detailsPickup.shelters?.address || 'Address pending'} ↗</strong></a></div>
           </div>
         </div>

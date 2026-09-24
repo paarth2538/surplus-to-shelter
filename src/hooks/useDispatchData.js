@@ -4,7 +4,7 @@ import { subscribeToPickups } from '../lib/realtime';
 
 const TAB_FILTERS = {
   active: (pickup) => ['ASSIGNED', 'PICKUP', 'IN_TRANSIT'].includes(pickup.status),
-  scheduled: (pickup) => pickup.status === 'ASSIGNED' && pickup.scheduled_at && new Date(pickup.scheduled_at) > new Date(),
+  scheduled: (pickup) => pickup.status === 'ASSIGNED' && pickup.pickup_time && new Date(pickup.pickup_time) > new Date(),
   completed: (pickup) => pickup.status === 'DELIVERED',
   all: () => true
 };
@@ -13,7 +13,7 @@ export default function useDispatchData(userId, role = 'admin', { initialTab = '
   const [pickups, setPickups] = useState([]);
   const [tab, setTab] = useState(initialTab);
   const [filters, setFilters] = useState({ search: '', status: 'ALL' });
-  const [sort, setSort] = useState({ key: 'scheduled_at', direction: 'asc' });
+  const [sort, setSort] = useState({ key: 'pickup_time', direction: 'asc' });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(Boolean(userId));
   const [error, setError] = useState('');
@@ -24,8 +24,8 @@ export default function useDispatchData(userId, role = 'admin', { initialTab = '
     setLoading(true);
     const { data, error: queryError } = await supabase
       .from('pickups')
-      .select('id, match_id, driver_id, donor_id, shelter_id, status, scheduled_at, assigned_at, picked_up_at, delivered_at, pickup_verified_at, delivery_verified_at, pickup_lat, pickup_lng, delivery_lat, delivery_lng, proof_photo_url, proof_signature_url, delivery_proof_photo_url, delivery_proof_signature_url, temperature_c, notes, created_at, updated_at, drivers(id, name, phone, vehicle_type, capacity_kg, current_lat, current_lng, is_available, status), donations(id, food_name, quantity, unit, pickup_address, latitude, longitude, donor_id), shelters(id, organization_name, address, phone, latitude, longitude, profile_id), matches(id, status, score)')
-      .order('scheduled_at', { ascending: true, nullsFirst: false });
+      .select('id, match_id, driver_id, donation_id, shelter_id, status, pickup_time, assigned_at, picked_up_at, delivered_at, pickup_verified_at, delivery_verified_at, pickup_lat, pickup_lng, delivery_lat, delivery_lng, proof_photo_url, proof_signature_url, delivery_proof_photo_url, delivery_proof_signature_url, temperature_c, notes, created_at, updated_at, drivers(id, name, phone, vehicle_type, capacity_kg, current_lat, current_lng, is_available, status), donations(id, food_name, quantity, unit, pickup_address, latitude, longitude, donor_id), shelters(id, organization_name, address, phone, latitude, longitude, profile_id), matches(id, status, score)')
+      .order('pickup_time', { ascending: true, nullsFirst: false });
     if (queryError) setError(queryError.message || 'Unable to load dispatch data.');
     else setPickups(data || []);
     setLoading(false);

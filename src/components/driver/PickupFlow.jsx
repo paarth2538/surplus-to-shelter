@@ -54,7 +54,12 @@ export default function PickupFlow({ pickup, driver, onClose, onComplete }) {
 
   const updateLocation = useCallback(async ({ lat, lng }) => {
     if (!supabase || !driver?.id || lat === undefined || lng === undefined) return;
-    await supabase.from('drivers').update({ current_lat: lat, current_lng: lng, last_location_update: new Date().toISOString() }).eq('id', driver.id);
+    const { error: locationError } = await supabase.rpc('update_driver_location', {
+      p_lat: lat,
+      p_lng: lng,
+      p_accuracy: null
+    });
+    if (locationError) throw locationError;
   }, [driver]);
 
   const completeStep = async (payload) => {

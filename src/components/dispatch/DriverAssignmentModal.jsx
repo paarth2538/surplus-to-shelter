@@ -18,7 +18,7 @@ export default function DriverAssignmentModal({ pickup, onClose, onAssigned }) {
 
   const assign = async (driver) => {
     setAssigning(driver.id);
-    const { error: assignError } = await supabase.rpc('assign_driver_to_match', { p_match_id: pickup.match_id, p_driver_id: driver.id, p_scheduled_at: pickup.scheduled_at });
+    const { error: assignError } = await supabase.rpc('assign_driver_to_match', { p_match_id: pickup.match_id, p_driver_id: driver.id, p_scheduled_at: pickup.pickup_time });
     if (assignError) setError(assignError.message); else onAssigned?.();
     setAssigning(null);
   };

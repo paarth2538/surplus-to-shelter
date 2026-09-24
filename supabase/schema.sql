@@ -161,12 +161,16 @@ $$;
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),
   donation_id uuid not null references public.donations(id) on delete cascade,
-  shelter_id uuid not null references public.shelters(id) on delete cascade,
-  score numeric,
-  status text not null default 'PROPOSED' check (status in ('PROPOSED', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'ASSIGNED', 'PICKUP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED')),
+  shelter_request_id uuid not null references public.shelter_requests(id) on delete cascade,
+  match_score numeric(5, 2) not null check (match_score >= 0 and match_score <= 100),
+  distance_km numeric(10, 2),
+  quantity_coverage numeric(5, 2) not null check (quantity_coverage >= 0 and quantity_coverage <= 100),
+  urgency_level text not null check (urgency_level in ('low', 'medium', 'high', 'critical')),
+  expiry_warning text not null default 'safe',
+  status text not null default 'proposed' check (status in ('proposed', 'accepted', 'dismissed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (donation_id, shelter_id)
+  unique (donation_id, shelter_request_id)
 );
 create table if not exists public.drivers (
   id uuid primary key default gen_random_uuid(),
@@ -192,9 +196,7 @@ create table if not exists public.pickups (
   match_id uuid references public.matches(id) on delete set null,
   donation_id uuid references public.donations(id) on delete cascade,
   driver_id uuid references public.drivers(id) on delete set null,
-  donor_id uuid references public.profiles(id) on delete set null,
   shelter_id uuid references public.shelters(id) on delete set null,
-  scheduled_at timestamptz,
   pickup_time timestamptz,
   picked_up_at timestamptz,
   delivery_time timestamptz,
@@ -227,8 +229,6 @@ alter table public.drivers add column if not exists last_location_update timesta
 alter table public.drivers add column if not exists current_pickup_id uuid references public.pickups(id) on delete set null;
 
 alter table public.pickups add column if not exists match_id uuid references public.matches(id) on delete set null;
-alter table public.pickups add column if not exists donor_id uuid references public.profiles(id) on delete set null;
-alter table public.pickups add column if not exists scheduled_at timestamptz;
 alter table public.pickups add column if not exists picked_up_at timestamptz;
 alter table public.pickups add column if not exists delivered_at timestamptz;
 alter table public.pickups add column if not exists pickup_lat double precision;
@@ -280,7 +280,6 @@ set status = case lower(status)
   when 'cancelled' then 'CANCELLED'
   else 'ASSIGNED'
 end,
-scheduled_at = coalesce(scheduled_at, pickup_time),
 picked_up_at = coalesce(picked_up_at, pickup_time),
 delivered_at = coalesce(delivered_at, delivery_time),
 updated_at = coalesce(updated_at, created_at);
@@ -313,7 +312,7 @@ $$;
 
 alter table public.matches
   add constraint matches_status_check
-  check (status in ('PROPOSED', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'ASSIGNED', 'PICKUP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'));
+  check (status in ('proposed', 'accepted', 'dismissed'));
 
 alter table public.drivers
   drop constraint if exists drivers_status_check;
@@ -323,9 +322,9 @@ alter table public.drivers
   check (status in ('AVAILABLE', 'ASSIGNED', 'PICKUP', 'IN_TRANSIT', 'OFFLINE'));
 
 create index if not exists matches_donation_id_idx on public.matches (donation_id);
-create index if not exists matches_shelter_id_idx on public.matches (shelter_id);
+create index if not exists matches_shelter_request_id_idx on public.matches (shelter_request_id);
 create index if not exists pickups_driver_status_idx on public.pickups (driver_id, status);
-create index if not exists pickups_scheduled_idx on public.pickups (scheduled_at);
+create index if not exists pickups_pickup_time_idx on public.pickups (pickup_time);
 create index if not exists pickups_match_idx on public.pickups (match_id);
 create index if not exists drivers_status_idx on public.drivers (status);
 create index if not exists drivers_user_id_idx on public.drivers (user_id);
@@ -433,7 +432,7 @@ as $$
     from public.pickups pu
     join public.donations d on d.id = pu.donation_id
     where pu.id = pickup_uuid
-      and coalesce(pu.donor_id, d.donor_id) = auth.uid()
+      and d.donor_id = auth.uid()
   )
   or exists (
     select 1
@@ -538,16 +537,10 @@ begin
         available = true
     where id = v_driver_id;
 
-    update public.matches
-    set status = case when p_new_status = 'DELIVERED' then 'DELIVERED' else 'CANCELLED' end,
-        updated_at = now()
-    where id = v_match_id;
   elsif p_new_status = 'PICKUP' then
     update public.drivers set status = 'PICKUP' where id = v_driver_id;
-    update public.matches set status = 'PICKUP', updated_at = now() where id = v_match_id;
   elsif p_new_status = 'IN_TRANSIT' then
     update public.drivers set status = 'IN_TRANSIT' where id = v_driver_id;
-    update public.matches set status = 'IN_TRANSIT', updated_at = now() where id = v_match_id;
   end if;
 end;
 $$;
@@ -608,6 +601,7 @@ declare
   v_pickup_id uuid;
   v_donation_id uuid;
   v_shelter_id uuid;
+  v_match_status text;
 begin
   if not public.is_profile_role('admin') then
     raise exception 'Unauthorized: admin access required';
@@ -617,21 +611,25 @@ begin
     raise exception 'Driver is not available';
   end if;
 
-  select donation_id, shelter_id into v_donation_id, v_shelter_id from public.matches where id = p_match_id;
+  select m.donation_id, sr.shelter_id, m.status
+    into v_donation_id, v_shelter_id, v_match_status
+  from public.matches m
+  join public.shelter_requests sr on sr.id = m.shelter_request_id
+  where m.id = p_match_id;
   if not found then raise exception 'Match not found'; end if;
+  if v_match_status <> 'accepted' then raise exception 'Match must be accepted before driver assignment'; end if;
 
   select id into v_pickup_id from public.pickups where match_id = p_match_id limit 1;
   if v_pickup_id is null then
-    insert into public.pickups (match_id, donation_id, driver_id, donor_id, shelter_id, status, assigned_at, scheduled_at)
-    select p_match_id, v_donation_id, p_driver_id, d.donor_id, v_shelter_id, 'ASSIGNED', now(), p_scheduled_at
+    insert into public.pickups (match_id, donation_id, driver_id, shelter_id, status, assigned_at, pickup_time)
+    select p_match_id, v_donation_id, p_driver_id, v_shelter_id, 'ASSIGNED', now(), p_scheduled_at
     from public.donations d where d.id = v_donation_id
     returning id into v_pickup_id;
   else
-    update public.pickups set driver_id = p_driver_id, status = 'ASSIGNED', assigned_at = now(), scheduled_at = coalesce(p_scheduled_at, scheduled_at) where id = v_pickup_id;
+    update public.pickups set driver_id = p_driver_id, status = 'ASSIGNED', assigned_at = now(), pickup_time = coalesce(p_scheduled_at, pickup_time) where id = v_pickup_id;
   end if;
 
   update public.drivers set current_pickup_id = v_pickup_id, status = 'ASSIGNED', is_available = false, available = false where id = p_driver_id;
-  update public.matches set status = 'ASSIGNED', updated_at = now() where id = p_match_id;
   return v_pickup_id;
 end;
 $$;
@@ -652,7 +650,7 @@ create policy "Drivers can view assigned pickup donor profiles"
       join public.drivers dr on dr.id = pu.driver_id
       left join public.donations dn on dn.id = pu.donation_id
       where coalesce(dr.user_id, dr.profile_id) = (select auth.uid())
-        and coalesce(pu.donor_id, dn.donor_id) = public.profiles.id
+        and dn.donor_id = public.profiles.id
     )
   );
 
@@ -768,7 +766,6 @@ create policy "Donors and admins can create pickups"
   on public.pickups for insert to authenticated
   with check (
     public.owns_donation(donation_id)
-    or donor_id = (select auth.uid())
     or public.is_profile_role('admin')
   );
 
@@ -800,8 +797,10 @@ create policy "Relevant users can view matches"
       where d.id = donation_id and d.donor_id = (select auth.uid())
     )
     or exists (
-      select 1 from public.shelters s
-      where s.id = shelter_id and s.profile_id = (select auth.uid())
+      select 1
+      from public.shelter_requests sr
+      join public.shelters s on s.id = sr.shelter_id
+      where sr.id = shelter_request_id and s.profile_id = (select auth.uid())
     )
     or public.is_profile_role('admin')
   );
@@ -855,7 +854,7 @@ begin
     from public.drivers dr
     where dr.id = new.driver_id
     union
-    select coalesce(new.donor_id, dn.donor_id) as user_id
+    select dn.donor_id as user_id
     from public.donations dn
     where dn.id = new.donation_id
     union

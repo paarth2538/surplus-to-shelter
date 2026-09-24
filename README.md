@@ -78,7 +78,7 @@ Open the local URL printed by Vite in your browser.
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Open the Supabase SQL Editor.
-3. Run [`supabase/schema.sql`](supabase/schema.sql).
+3. Run [`supabase/schema.sql`](supabase/schema.sql), then apply migrations `002_shelter_requests.sql`, `003_matching_engine.sql`, `004_phase6_pickup_workflow.sql`, and `005_phase7_live_tracking.sql` in order.
 4. Copy `.env.example` to `.env.local`.
 5. Add your Supabase project values:
 

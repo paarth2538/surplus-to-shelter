@@ -11,7 +11,7 @@ export default function PickupDetailModal({ pickup, onClose, onUpdated }) {
   const [error, setError] = useState('');
   const override = async () => {
     setSaving(true); setError('');
-    const { error: updateError } = await supabase.from('pickups').update({ status, notes: reason ? `${pickup.notes || ''}\nAdmin override: ${reason}` : pickup.notes, updated_at: new Date().toISOString() }).eq('id', pickup.id);
+    const { error: updateError } = await supabase.rpc('admin_update_pickup_status', { p_pickup_id: pickup.id, p_new_status: status, p_notes: reason ? `${pickup.notes || ''}\nAdmin override: ${reason}` : pickup.notes });
     if (updateError) setError(updateError.message); else onUpdated?.();
     setSaving(false);
   };

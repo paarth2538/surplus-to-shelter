@@ -23,9 +23,9 @@ export default function useDriverPickups(driverId) {
     setError('');
     const { data: pickupRecords, error: pickupError } = await supabase
       .from('pickups')
-      .select('id, driver_id, donor_id, status, scheduled_at, assigned_at, picked_up_at, delivered_at, pickup_lat, pickup_lng, delivery_lat, delivery_lng, notes, donations(id, food_name, quantity, unit, pickup_address, donor_id), shelters(organization_name, address, phone)')
+      .select('id, driver_id, donation_id, status, pickup_time, assigned_at, picked_up_at, delivered_at, pickup_lat, pickup_lng, delivery_lat, delivery_lng, notes, donations(id, food_name, quantity, unit, pickup_address, donor_id), shelters(organization_name, address, phone)')
       .eq('driver_id', driverId)
-      .order('scheduled_at', { ascending: true, nullsFirst: false });
+      .order('pickup_time', { ascending: true, nullsFirst: false });
 
     if (pickupError) {
       setError(pickupError.message || 'Unable to load assigned pickups.');
@@ -34,7 +34,7 @@ export default function useDriverPickups(driverId) {
     }
 
     const records = pickupRecords || [];
-    const donorIds = [...new Set(records.map((pickup) => pickup.donations?.donor_id || pickup.donor_id).filter(Boolean))];
+    const donorIds = [...new Set(records.map((pickup) => pickup.donations?.donor_id).filter(Boolean))];
     let donorsById = {};
     if (donorIds.length) {
       const { data: donorProfiles } = await supabase
@@ -61,7 +61,7 @@ export default function useDriverPickups(driverId) {
 
     const enrichedPickups = records.map((pickup) => ({
       ...pickup,
-      donor: donorsById[pickup.donations?.donor_id || pickup.donor_id] || null
+      donor: donorsById[pickup.donations?.donor_id] || null
     }));
     setPickups(enrichedPickups);
     setImpactRecords(impactData);
@@ -96,8 +96,8 @@ export default function useDriverPickups(driverId) {
   );
   const upcomingPickups = useMemo(
     () => pickups
-      .filter((pickup) => pickup.status === 'ASSIGNED' && pickup.scheduled_at && new Date(pickup.scheduled_at).getTime() > currentTime)
-      .sort((firstPickup, secondPickup) => new Date(firstPickup.scheduled_at) - new Date(secondPickup.scheduled_at)),
+      .filter((pickup) => pickup.status === 'ASSIGNED' && pickup.pickup_time && new Date(pickup.pickup_time).getTime() > currentTime)
+      .sort((firstPickup, secondPickup) => new Date(firstPickup.pickup_time) - new Date(secondPickup.pickup_time)),
     [currentTime, pickups]
   );
 

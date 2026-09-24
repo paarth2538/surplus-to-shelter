@@ -11,7 +11,7 @@ export function subscribeToPickups(userId, role, callbacks = {}) {
     if (role === 'admin') return true;
     const record = payload.new || payload.old || {};
     if (role === 'driver') return record.driver_id === userId;
-    if (role === 'donor') return record.donor_id === userId;
+    if (role === 'donor') return false;
     if (role === 'shelter') return record.shelter_id === userId;
     return false;
   };
@@ -40,4 +40,34 @@ export function subscribeToPickups(userId, role, callbacks = {}) {
     if (reconnectTimer) window.clearTimeout(reconnectTimer);
     if (channel) supabase.removeChannel(channel);
   };
+}
+
+export function subscribeToPickup(pickupId, callbacks = {}) {
+  if (!supabase || !pickupId) return () => {};
+  const channel = supabase
+    .channel(`pickup-${pickupId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'pickups',
+      filter: `id=eq.${pickupId}`
+    }, (payload) => callbacks.onChange?.(payload))
+    .subscribe((status) => callbacks.onStatus?.(status));
+
+  return () => supabase.removeChannel(channel);
+}
+
+export function subscribeToDriver(driverId, callbacks = {}) {
+  if (!supabase || !driverId) return () => {};
+  const channel = supabase
+    .channel(`driver-location-${driverId}`)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'drivers',
+      filter: `id=eq.${driverId}`
+    }, (payload) => callbacks.onChange?.(payload))
+    .subscribe((status) => callbacks.onStatus?.(status));
+
+  return () => supabase.removeChannel(channel);
 }

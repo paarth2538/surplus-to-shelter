@@ -15,12 +15,12 @@ export default function TransitStep({ onComplete, onError, onLocationUpdate }) {
     const updateLocation = () => {
       void getCurrentPosition()
         .then((position) => onLocationUpdate?.({ lat: position.latitude, lng: position.longitude }))
-        .catch(() => {});
+        .catch((error) => onError?.(error));
     };
     updateLocation();
     const timer = window.setInterval(updateLocation, 30000);
     return () => window.clearInterval(timer);
-  }, [getCurrentPosition, onLocationUpdate]);
+  }, [getCurrentPosition, onError, onLocationUpdate]);
 
   useEffect(() => {
     if (!location.error) return;
@@ -42,7 +42,7 @@ export default function TransitStep({ onComplete, onError, onLocationUpdate }) {
   return (
     <div className="pickup-flow-step">
       <div className="pickup-flow-step-heading"><span className="section-eyebrow">STEP 2 OF 3</span><h2>Transit</h2><p>Share your live route location, then start the delivery journey.</p></div>
-      <div className="location-readout"><span className="location-pulse" />{location.lat ? `Location ready · ±${Math.round(location.accuracy || 0)}m` : 'Waiting for location permission'}</div>
+      <div className="location-readout"><span className="location-pulse" />{location.error ? location.error : location.lat ? `Location sharing active · ±${Math.round(location.accuracy || 0)}m` : 'Allow location access to share your live route.'}</div>
       <button type="button" className="btn-pill-primary wizard-next-button" onClick={startTransit} disabled={updating}>{updating ? 'Starting transit...' : 'Start Transit'}</button>
     </div>
   );
