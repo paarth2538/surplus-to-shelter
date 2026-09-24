@@ -147,7 +147,7 @@ Do not claim the database is fixed until those checks succeed in Supabase.
 - Updated `src/components/RoleDashboard.jsx`, `src/components/ShelterWorkspace.jsx`, and `src/App.css` only for match rendering and controls.
 - No driver dispatch, live tracking, maps, notifications, AI, or predictive logic was added.
 - `npm run lint` and `npm run build` pass with non-blocking existing warnings.
-- The Phase 5 migration has not been executed in Supabase and no real match row has been independently verified yet.
+- The user confirmed that the Phase 5 migration has now been executed remotely in Supabase. A real `public.matches` row has not been independently observed by this agent, so match-row verification remains an explicit follow-up check.
 
 ## Future Task Entry Template
 
