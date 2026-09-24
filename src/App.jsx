@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import RoleDashboard from './components/RoleDashboard';
 import DispatchDashboard from './components/dispatch/DispatchDashboard';
 import PickupTrackingView from './components/shared/PickupTrackingView';
+import PickupLogisticsMap from './components/shared/PickupLogisticsMap';
 import { useAuth } from './context/AuthContext';
 import { supabase } from './lib/supabase';
 import './App.css';
@@ -84,7 +85,7 @@ export default function App() {
       return <ProtectedRoute allowedRoles={['admin']} onNavigate={navigate}><DispatchDashboard user={user} onNavigate={navigate} onSignOut={async () => { await signOut(); navigate('/'); }} /></ProtectedRoute>;
     }
     if (isTrackingPath) {
-      return <ProtectedRoute allowedRoles={[requestedRole]} onNavigate={navigate}><PickupTrackingView pickupId={trackingPickupId} user={user} role={requestedRole} onBack={() => navigate(`/${requestedRole}`)} /></ProtectedRoute>;
+      return <ProtectedRoute allowedRoles={[requestedRole]} onNavigate={navigate}><PickupTrackingView pickupId={trackingPickupId} user={user} role={requestedRole} onBack={() => navigate(`/${requestedRole}`)} /><PickupLogisticsMap pickupId={trackingPickupId} /></ProtectedRoute>;
     }
     return (
       <ProtectedRoute
